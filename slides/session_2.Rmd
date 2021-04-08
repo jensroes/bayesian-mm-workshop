@@ -1,0 +1,128 @@
+---
+title: "Bayesian mixed models with brms | session 2"
+author: Jens Roeser 
+date: 'Last updated: `r Sys.Date()`'
+output: 
+  ioslides_presentation:
+#  revealjs::revealjs_presentation:
+    theme: simplex
+    highlight: zenburn
+    incremental: true
+    transition: slower
+    widescreen: true
+    smaller: true
+
+bibliography: ["references.bib"]
+csl: apa.csl
+link-citations: no
+
+---
+
+```{r setup, include=FALSE}
+library(citr)
+library(tidyverse)
+library(magrittr)
+library(lme4)
+library(brms)
+library(ggthemes)
+library(kableExtra)
+library(knitr)
+library(readxl)
+library(extrafont)
+library(broom)
+library(tidybayes)
+library(janitor)
+source("../scripts/functions.R")
+options("kableExtra.html.bsTable" = T)
+knitr::opts_chunk$set(echo = FALSE,
+                      comment=NA, 
+                      warning = FALSE,
+                      message =FALSE)
+theme_set(theme_few(base_size = 12))
+```
+
+
+# Outline
+
+## Outline
+
+- Priors
+- Bayes Factors
+- Distribution families: lognormal
+- Reparametrisation
+- ex-Gaussian and mixture models of keystroke data
+- Model comparisons
+
+
+# Priors
+
+## Priors
+
+- Prior knowledge about parameters.
+- Often criticised as being subjective (which is often not true).
+- Helps parameter estimation.
+- Data overcome the prior (automatic Ockham's razor).
+- Small samples are sensitive to priors.
+- Important for Bayes Factors
+
+## Priors
+
+- Check defaults used before.
+
+```{r}
+fit_brm <- readRDS(file = "../stanout/brms_sim.rda")
+prior_summary(fit_brm)
+```
+
+
+- Check what happens with more specific priors (smaller variance, negative effect)
+- Reduce sample size and repeat
+
+
+# Family of distributions
+
+## Family of distributions (just some important ones)
+
+- **Gaussian**: data are assumed to come from a normal distribution
+- **Log-Normal**: zero bound data with positive skew
+- **Bernoulli**: binomial data
+- **Poisson**: count data
+- **Zero-inflated Poisson**: count data with lots of zeros
+- **Ex-Gaussian**: continuous data with positive skew
+- Families for ordinal data [@burkner2019ordinal]
+- Mixtures of distributions and distribution families
+
+
+
+# Reparametrisation
+
+## Reparametrisation
+
+- Contrast coding
+- Remove intercept
+- Calculate difference (and interactions) from posterior
+
+
+
+
+
+# Reading-while-writing data
+
+
+
+## Recommended reading
+
+- Bürkner's tutorials [@brms1; @brms2; @burkner2019ordinal; @burkner2019bayesian]
+- Vasishth's tutorials [@sorensen2016bayesian; @nicenboim2016statistical; @vasishth2016statistical]
+- Book-length intros: @gelman2020regression, @lambert2018student, @kruschke2014doing, @mcelreath2016statistical
+
+
+## References
+
+<style>
+slides > slide { overflow: scroll; }
+slides > slide:not(.nobackground):after {
+  content: '';
+}
+</style>
+
