@@ -51,14 +51,27 @@ theme_set(theme_few(base_size = 12) )
 - Fitting and comparing frequentist and Bayesian LMMs
 - Evaluating a Bayesian model and model parameters
 
+## Before we start ...
+
+- Download the workshop folder.
+- We will pull it from GitHub via RStudio.
+- Open RStudio
+- Link for workshop folder.
+- Exercise scripts
+- Some data
+- Slides
+
 
 # Two universes
 
 ## Two universes
 
-- Null-hypothesis significance testing (NHST): data are variable and parameters are fixed
-- Bayesian statistics: data are fixed and parameters are variable
+- **Null-hypothesis significance testing (NHST)**
+- **Bayesian statistics**
 - The difference is the way we use to arrive at our inference.
+- NHST: do we believe in the data if there's actually no effect?
+- Bayesian: what's the probability of an effect given the data (and what we know from similar data)?
+
 
 
 
@@ -68,10 +81,11 @@ $$
 P(\text{data} \mid H_0 = \text{TRUE})
 $$
 
-- Aka Frequentist statistics
+- aka Frequentist statistics
 - Inference: evaluating the probability of data assuming that the null hypothesis is true.
 - If the data are extreme enough, the null hypothesis becomes implausible.
 - Conclusion: the alternative hypothesis is assumed if the null hypothesis was rejected.
+- Data are variable and parameters are fixed
 
 ## NHST and its problems
 
@@ -132,6 +146,12 @@ $$
 $$
 p(\theta \mid y) \propto p(\theta)p(y \mid \theta)
 $$
+- $\theta$ = parameter(s), $y$ = data, $\mid$ = given (conditional on)
+- $p(y \mid \theta)$ = likelihood (similar to MLE in NHST)
+- $p(\theta)$ = prior (what do we know about the parameter(s))
+- $p(\theta \mid y)$ = posterior distribution (how much we believe in different parameter values after seeing the data)
+
+
 
 ![](pics/bayes.jpeg)
 
@@ -145,6 +165,7 @@ $$
 - The posterior is proportional to the prior times the likelihood.
 - In maximum likelihood estimation we search for the parameters that maximize the (log) likelihood.
 - For Bayesian estimation we use the likelihood to update our prior beliefs in different parameter values.
+- Data are fixed and parameters are variable.
 - Bayes' Theorem allows us to determine parameter values from the data (plus prior).
 - This can be computationally demanding!
 
@@ -153,7 +174,7 @@ $$
 
 
 
-## brms overview
+## brms [@brms1]
 
 - *R* package for Bayesian models
 - More probability models than other regressions packages
@@ -166,9 +187,11 @@ $$
 
 ## Why is this important for linguistis?
 
-- Beliefs about the hypothesis are directly based on the data as a probability distribution
-- Model many different data types (keystroke latencies, number of pauses, accuracy)
-
+- Beliefs about the hypothesis are directly based on the data as a probability distribution.
+- Useful for small data sets in which prior information might play a huge role.
+- Model many different data types (keystroke latencies, number of pauses, accuracy).
+- Flexible ways of modelling data and deriving inference.
+- Posterior sampling can handle missing data problems.
 
 
 ## Simulating data
@@ -222,13 +245,15 @@ ggplot(data, aes(x = condition, y = y)) +
 data <- jens_data_machine(intercept = 300, slope = 15)
 ```
 
-```{r echo = F, fig.height = 4}
+```{r echo = F, fig.height = 4, fig.width=5.5}
 data_sum <- data %>% group_by(participant_id, condition) %>%
   summarise(mean = mean(y)) %>%
   group_by(participant_id) %>%
   mutate(diff = ifelse(diff(mean)>0, TRUE, FALSE )) %>%
   group_by(condition) %>%
   mutate(N = n())
+
+N <- unique(data_sum$N)
 
 ggplot(data_sum, aes(x = condition, y = mean, colour = diff)) +
   geom_point(size = 3, alpha = .75, show.legend = F) +
@@ -364,9 +389,21 @@ fixef(fit_brm) # Coefficients of Bayesian model
 
 ## Parameter estimation
 
+<div style="float: left;width: 40%">
 
+- **Hamiltonian Monte Carlo:** Markov chain Monte Carlo method for obtaining random samples.
+- Converge to being distributed according to a target probability distribution.
+- Probability of values proposed by the sampler is estimated given the data and the prior.
+- Direction changes if probability of proposed estimate is lower than previous one.
+- Priors can be used to limit the parameter space (which is otherwise infinite) but are updated at every step.
+- Parameter space is really multi-dimensional.
 
-```{r}
+</div>
+
+<div style="float: right;width: 55%">
+
+```{r }
+
 sim <- fit_brm$fit@sim
 samples <- map(1:4, ~sim$samples[[.]] %>%
                  as_tibble() %>%
@@ -378,18 +415,22 @@ samples <- map(1:4, ~sim$samples[[.]] %>%
          chain = factor(chain))
 ```
 
-```{r }
+```{r fig.width=5}
 pivot_wider(samples, names_from = name, values_from = value) %>%
+  filter(chain == 1) %>%
   mutate(chain = paste0("Chain: ", chain)) %>%
   ggplot(aes(x = b_Intercept, y = b_conditionb, colour = chain)) +
   scale_color_viridis_d("") +
   geom_path(show.legend = F) +
   facet_wrap(~chain) +
   labs(title = "Parameter space") +
-  scale_x_continuous(limits = c(-100, 500), breaks = seq(-150, 600, 150)) +
-  scale_y_continuous(limits = c(-50, 150), breaks = seq(-150, 600, 50)) +
+  scale_x_continuous(limits = c(-100, 400), breaks = seq(-150, 600, 150)) +
+  scale_y_continuous(limits = c(-50, 100), breaks = seq(-150, 600, 50)) +
   theme(legend.justification = "top")
 ```
+
+</div>
+
 
 ## Parameter estimation
 
@@ -835,15 +876,20 @@ rope(delta, range = c(-0.1, 0.1))
 
 
 
+# The end
+
 
 
 ## For next session
 
+- We will compare different models of keystroke intervals.
 - Run the following models and save their posterior:
+  - `gaussian_sentence.R`
   - `lognormal_sentence.R`
   - `exgaussian_sentence.R`
   - `mixture_model_sentence.R`
-- Don't worry if you don't understand what they do, we just need the posterior for the next session.
+  - `skewnormal_sentence.R` (don't run this one, if you don't have time)
+- Don't worry if you don't know what they do (yet), we just need the posterior of these models for the next session.
 
 
 ## References

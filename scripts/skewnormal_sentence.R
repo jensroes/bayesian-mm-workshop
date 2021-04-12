@@ -11,17 +11,17 @@ data <- read_csv("data/sentence_transitions.csv") %>%
 
 # Specify model 
 model <- bf(IKI ~ 1 + (1 | SubNo),  
-            beta ~ 1 + (1 | SubNo), # decay parameter (exponential component)
-            family = exgaussian())
+            alpha ~ 1 + (1 | SubNo), # skew parameter
+            family = skew_normal())
 
 
 # Check out the priors for this model (some have defaults, others are flat
-#get_prior(model, data = data)
+get_prior(model, data = data)
 
 
 # Setup priors
 prior <- set_prior("normal(250, 20)", class = "Intercept") +
-         set_prior("normal(6, 2)", class = "Intercept", dpar = "beta")  # this is the decay rate (tau in slides) in log msecs
+         set_prior("normal(0, 4)", class = "Intercept", dpar = "alpha")  # this is the decay rate (tau in slides) in log msecs
 
 
 # Run model
@@ -29,7 +29,7 @@ iter <- 6000 # Number of iterations
 warmup <- iter / 2 # Warm-up samples
 chains <- cores <- 3 # Number of chains (use one core of your machine per chain)
 
-fit_exgaus <- brm(model, 
+fit_skewnorm <- brm(model, 
                   data = data, 
                   prior = prior, 
                   chains = chains, cores = cores,
@@ -41,9 +41,10 @@ fit_exgaus <- brm(model,
 
 
 # Check out the estimates 
-fixef(fit_exgaus) %>% round(2) # round numbers to make it more readable
+fixef(fit_skewnorm) %>% round(2) # round numbers to make it more readable
+
 
 # Save model
-saveRDS(fit_exgaus, 
-        file = "stanout/exgaussian_sentence.rda", 
+saveRDS(fit_skewnorm, 
+        file = "stanout/skewnormal_sentence.rda", 
         compress = "xz")

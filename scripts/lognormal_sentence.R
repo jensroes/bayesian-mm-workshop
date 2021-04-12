@@ -4,31 +4,25 @@ library(brms)
 
 
 # Load data (transitions for sentences only)
-data <- read_csv("data/sentence_transitions.csv")
+data <- read_csv("data/sentence_transitions.csv") %>%
+  select(SubNo, Lang, transition_type, IKI) %>%
+  filter(IKI > 50, IKI < 5000)
 
 
-# Descriptives
-group_by(data, transition_type, Lang) %>%
-  summarise(mean_iki = mean(IKI),
-            sd_iki = sd(IKI))
-
-
-# Specify model (cell means)
-# Note the family part
-model <- bf(IKI ~ 1 + transition_type * Lang + (1 | SubNo), family = lognormal)
+# Specify model 
+model <- bf(IKI ~ 1 + (1 | SubNo), family = lognormal())
 
 
 # Check out the priors for this model (some have defaults, others are flat
-get_prior(model, data = data)
+#get_prior(model, data = data)
 
 
 # Setup priors
-prior <-  set_prior("normal(6, 2)", class = "b") 
-# this model has no intercepts and the slope (class b) are the cell means
+prior <- set_prior("normal(5, 3)", class = "Intercept") 
 
 
 # Run model
-iter <- 4000 # Number of iterations
+iter <- 6000 # Number of iterations
 warmup <- iter / 2 # Warm-up samples
 chains <- cores <- 3 # Number of chains (use one core of your machine per chain)
 
@@ -37,16 +31,17 @@ fit_lognormal <- brm(model,
                      prior = prior, 
                      chains = chains, cores = cores,
                      iter = iter, warmup = warmup,
-                     sample_prior = T)
+                     sample_prior = TRUE,
+                     control = list(adapt_delta = .99, 
+                                    max_treedepth = 16),
+                     seed = 365)
 
 
-# Check out the estimates cell means (compare to descriptives)
-fixef(fit_lognormal) %>% exp() # the estimates are on a log rt scale; exp() is removing the log()
-
+# Check out the estimates 
+fixef(fit_lognormal) %>% round(2) # round values to make coefficients more readable
 
 # Save model
 saveRDS(fit_lognormal, 
         file = "stanout/lognormal_sentence.rda", 
         compress = "xz")
-
 

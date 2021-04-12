@@ -4,15 +4,23 @@ library(brms)
 
 
 # Load data (transitions for sentences only)
-data <- read_csv("data/sentence_transitions.csv") %>%
-  select(SubNo, Lang, transition_type, IKI) %>%
-  filter(IKI > 50, IKI < 5000)
+data <- read_csv("data/word_transitions.csv") %>%
+  filter(IKI > 50)
 
 
-# Specify model 
-model <- bf(IKI ~ 1 + (1 | SubNo),  
-            beta ~ 1 + (1 | SubNo), # decay parameter (exponential component)
-            family = exgaussian())
+# Check out the data
+# Even on a log scale there is still a lot of positive skew
+ggplot(data, aes(y = IKI, x = Lang, colour = transition_type,
+                 group = transition_type)) +
+  geom_jitter(size = .25, position = position_jitterdodge(jitter.width = .25)) +
+  scale_y_log10() 
+
+
+# Specify model (cell means)
+# Note the family part
+model <- bf(IKI ~ 1 + transition_type*Lang + (1 | SubNo),  
+            beta ~ 1 + transition_type*Lang + (1 | SubNo),
+            family = exgaussian)
 
 
 # Check out the priors for this model (some have defaults, others are flat
@@ -21,7 +29,10 @@ model <- bf(IKI ~ 1 + (1 | SubNo),
 
 # Setup priors
 prior <- set_prior("normal(250, 20)", class = "Intercept") +
-         set_prior("normal(6, 2)", class = "Intercept", dpar = "beta")  # this is the decay rate (tau in slides) in log msecs
+         set_prior("normal(0, 100)", class = "b") +
+         set_prior("normal(6, 2)", class = "Intercept", dpar = "beta") + # this is the decay rate (tau in slides) in log msecs
+         set_prior('normal(0, 10)', class = "b", dpar = "beta") + 
+         set_prior("normal(10, 4)", class = "sigma") 
 
 
 # Run model
