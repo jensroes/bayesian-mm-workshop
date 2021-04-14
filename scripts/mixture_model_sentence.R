@@ -51,5 +51,3 @@ fixef(fit_mixturemodel) %>% round(2)
 saveRDS(fit_mixturemodel, 
         file = "stanout/mixture_model_sentence.rda", 
         compress = "xz")
-
-

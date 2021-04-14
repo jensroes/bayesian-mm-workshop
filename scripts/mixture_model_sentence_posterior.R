@@ -5,29 +5,33 @@ library(tidyverse)
 dir("stanout")
 
 # Load mixture model
-fit_mixturemodel <- readRDS("stanout/mixture_model_sentence.rda")
+mixturemodel <- readRDS("stanout/mixture_model_sentence.rda")
 
-# Check out the names of the coefficients
-names(fit_mixturemodel$fit)
+# Check out the names of the coefficients:
+names(mixturemodel$fit)
 
 # Select the population estimates
-coefs <- c("b_mu1_Intercept", "b_mu2_Intercept", "b_theta2_Intercept", "sigma1", "sigma2")
+# Task: there is one piece of information missing. We need the population 
+# estimate of the mixing proportion. Add the correct name:
+coefs <- c("b_mu1_Intercept", "b_mu2_Intercept", "---", "sigma1", "sigma2")
 
 # Summary of coefficients
-posterior_summary(fit_mixturemodel, pars = coefs) %>%
+# Task: `pars` needs to know which parameter to summarise. Their names are 
+# stored in `coefs`
+posterior_summary(mixturemodel, pars = ---, fixed = T) %>%
   round(2)
 
 # Posterior parameter values
-mcmc_plot(fit_mixturemodel, type = "hist", pars = coefs, fixed = T)
-
-# Match with data
-pp_check(fit_mixturemodel, nsamples = 100) +
-  scale_x_log10() # convert to log scale for visibility
+# Task: we want to plot the posterior distributions as histograms, 
+# called `hist`.
+mcmc_plot(mixturemodel, type = "---", pars = coefs, fixed = T)
 
 
 # Look at mixing proportion theta by participant
 # Extract parameter value estimates
-ppt_vars <- posterior_summary(fit_mixturemodel, pars = "r_SubNo__theta2") %>%
+# Task: Nothing to complete here but make sure you can make sense of the 
+# plot below.
+ppt_vars <- posterior_summary(mixturemodel, pars = "r_SubNo__theta2") %>%
   as.data.frame() %>%
   rownames_to_column("SubNo") %>%
   mutate(SubNo = str_match(SubNo, "S-\\s*(.*?)\\s*[,]")[,1],
@@ -47,6 +51,6 @@ ggplot(ppt_vars, aes(y = Estimate, ymin = `Q2.5`, ymax = `Q97.5`,
   labs(y = "Difference from population level mixing proportion in SDs",
        x = "Participant id")
 
-# Short cut
-mcmc_plot(fit_mixturemodel, pars = "r_SubNo__theta2")
+# Short cut (but unordered)
+mcmc_plot(mixturemodel, pars = "r_SubNo__theta2")
          

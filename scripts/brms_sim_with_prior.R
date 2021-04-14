@@ -8,17 +8,16 @@ data <- jens_data_machine(intercept = ---, slope = ---)
 
 
 # Check out the data
-glimpse(---)
+glimpse(data)
 
 
-# Plot the data: outcome variable on y and condition on x
+# Plot the data: outcome variable on y and `condition` on x
 ggplot(data = data, aes(y = ---, x = ---)) +
   geom_boxplot()
 
 
-# Setup mixed-effects model with condition as fixed effect and 
-# participant as random intercepts term:
-model <- bf(y ~ 1 + --- + (1 | ---))
+# Setup mixed-effects model with condition as fixed effect :
+model <- bf(y ~ 1 + --- + (1 | participant_id))
 # specifying model outside of brms works for lmer too.
 # bf = brmsformula
 
@@ -31,7 +30,7 @@ get_prior(model, data = data)
 #*slope (b): a normal distribution with a mean of 0, and a variance of 100
 #*These priors are weakly informative.
 prior <- set_prior("normal(---, ---)", class = "Intercept") +
-        set_prior("---(---, ---)", class = "b")
+         set_prior("---(---, ---)", class = "b")
 
 
 # Fit mixed-effects model 

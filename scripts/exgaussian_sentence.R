@@ -2,27 +2,22 @@
 library(tidyverse)
 library(brms)
 
-
 # Load data (transitions for sentences only)
 data <- read_csv("data/sentence_transitions.csv") %>%
   select(SubNo, Lang, transition_type, IKI) %>%
   filter(IKI > 50, IKI < 5000)
-
 
 # Specify model 
 model <- bf(IKI ~ 1 + (1 | SubNo),  
             beta ~ 1 + (1 | SubNo), # decay parameter (exponential component)
             family = exgaussian())
 
-
 # Check out the priors for this model (some have defaults, others are flat
 #get_prior(model, data = data)
-
 
 # Setup priors
 prior <- set_prior("normal(250, 20)", class = "Intercept") +
          set_prior("normal(6, 2)", class = "Intercept", dpar = "beta")  # this is the decay rate (tau in slides) in log msecs
-
 
 # Run model
 iter <- 6000 # Number of iterations

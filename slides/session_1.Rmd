@@ -50,6 +50,8 @@ theme_set(theme_few(base_size = 12) )
 - Difference to (classical) frequentist approaches
 - Fitting and comparing frequentist and Bayesian LMMs
 - Evaluating a Bayesian model and model parameters
+- There will be exercises (i.e. time for questions)!
+
 
 ## Before we start ...
 
@@ -58,8 +60,9 @@ theme_set(theme_few(base_size = 12) )
 - Open RStudio
 - Link for workshop folder.
 - Exercise scripts
-- Some data
+- Data
 - Slides
+- Create a folder called "stanout"
 
 
 # Two universes
@@ -144,10 +147,10 @@ $$
 ## Bayesian estimation | Bayes' Theorem 
 
 $$
-p(\theta \mid y) \propto p(\theta)p(y \mid \theta)
+p(\theta \mid y) \propto p(\theta) \cdot p(y \mid \theta)
 $$
-- $\theta$ = parameter(s), $y$ = data, $\mid$ = given (conditional on)
-- $p(y \mid \theta)$ = likelihood (similar to MLE in NHST)
+- $\theta$ = parameter(s), $y$ = data, $\mid$ = given (conditional on), $\propto$ = proportional to
+- $p(y \mid \theta)$ = likelihood (probability of each data point given parameter value estimates)
 - $p(\theta)$ = prior (what do we know about the parameter(s))
 - $p(\theta \mid y)$ = posterior distribution (how much we believe in different parameter values after seeing the data)
 
@@ -322,7 +325,7 @@ fit_brm <- brm(y ~ 1 + condition + (1|participant_id), data = data)
 ## Exercise: fit models on simulated data
 
 - Complete and run script `lmer_sim.R` and `brms_sim.R`
-- Replace "---"; run the script carefully line by line and check the output in the console.
+- Replace `---` correctly; run the script carefully line by line and check the output in the console.
 - Inspect and compare the fixed effects summaries.
 
 
@@ -569,7 +572,7 @@ pp_check(fit_brm, nsamples = 100)
 ## Exercise: model diagnostics
 
 - Open the scripts `model_diagnostics.R`
-- Replace the "---"s appropriately.
+- Replace the `---`s appropriately.
 - Run the code (line by line)
 
 
@@ -871,7 +874,7 @@ rope(delta, range = c(-0.1, 0.1))
 ## Final exercise: parameter evaluation
 
 - Open the script `parameter_evaluation.R`
-- Work through each line of code: complete the missing bits ("---") 
+- Work through each line of code: complete the missing bits (`---`). 
 - Check out the output.
 
 

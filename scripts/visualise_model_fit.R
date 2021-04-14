@@ -20,34 +20,57 @@ skewnormal <- readRDS("stanout/skewnormal_sentence.rda")
 exgaussian <- readRDS("stanout/exgaussian_sentence.rda")
 
 # Mixture model
-mixturemodel <- readRDS("stanout/mixture_model_sentence.rda")
+# Task: complete the "---" for the mixture model.
+mixturemodel <- readRDS("---")
 
 
 # Simulate n predictions from each model and compare
-# their density against the data
+# their density against the data.
+
+# First create 100 simulations for each model, create a plot and store it in a 
+# variable (e.g. `p_gaussian`).
+
 nsamples <- 100 # number of simulations
 
-p_mixture <- pp_check(mixturemodel, nsamples = nsamples) +
-  labs(subtitle = "Mixture mode") +
-  scale_x_log10() 
-
 p_gaussian <- pp_check(gaussian, nsamples = nsamples) +
-  labs(subtitle = "Gaussian") +
-  scale_x_log10()
+  labs(title = "Gaussian") 
+
+# Check out `p_gaussian`
+p_gaussian # looks terrible, eh?!
+
+# Create plots for the other four models.
+p_skewnormal <- pp_check(skewnormal, nsamples = nsamples) +
+  labs(title = "skew-Normal") 
 
 p_lognormal <- pp_check(lognormal, nsamples = nsamples) +
-  labs(subtitle = "log-Normal") +
-  scale_x_log10()
-
-p_skewnormal <- pp_check(skewnormal, nsamples = nsamples) +
-  labs(subtitle = "skew-Normal") +
-  scale_x_log10()
+  labs(title = "log-Normal") 
 
 p_exgaussian <- pp_check(exgaussian, nsamples = nsamples) +
-  labs(subtitle = "ex-Gaussian") +
-  scale_x_log10()
+  labs(title = "ex-Gaussian") 
+
+# Task: Complete this one for the mixture model and assign the output to p_mixture.
+--- <- pp_check(---, nsamples = ---) +
+  labs(title = "Mixture model") 
+
 
 # Combine all 5 plots
-( p_gaussian | p_lognormal | p_skewnormal ) / ( p_exgaussian | p_mixture )
+# Task: one plot is missing(indicated by the ---s); add the correct one.
+all_plots <-  p_gaussian + p_skewnormal  + --- + p_exgaussian + p_mixture  
+  coord_cartesian(xlim = c(0, 3000)) & theme_bw() &
+  theme(legend.position = "bottom",
+        legend.justification = "left")
 
-# Which model, do you think, has the best fit?
+
+# Do some magic to just have one legend instead of 5.
+all_plots + plot_layout(guides = "collect", nrow = 2) 
+# Which model, do you think, does best at predicting the observed data?
+
+
+# Bonus: change the `nsamples` variable from 100 to 10 (and create plots) and 
+# then to 1000 (and create plots) to see that the simulation is not a by product of 
+# random sampling.
+
+
+# Save plot (for slides)
+ggsave("slides/pics/modelcomps.png", width = 8, height = 6)
+
