@@ -51,8 +51,40 @@ model_comparisons$diffs
 # You can also extract the other stats
 model_comparisons$diff %>% as.data.frame() %>% round()
 
-# and indeed look at the fit statistics of every model (but this format is a 
-# little clumsy).
+# By model comparisons of the leave-one-out information criteria
+model_comparisons$ic_diffs__
 
-# Save comparison results
+# and indeed look at the fit statistics of every model
+model_comparisons
+
+# Save comparisons so you don't need to run it again.
 saveRDS(model_comparisons, "stanout/model_comparison.rda")
+
+# You might prefer a csv table you can open in excel with all the important bits.
+# Here you go:
+model_comparisons_all <- model_comparisons$diff %>% as.data.frame()
+write_csv(model_comparisons_all, "stanout/model_comparison.csv")
+
+
+# Lastly if you're wondering about "statistical significance" (which, btw, doesn't exist) between the 
+# best and second best model you can think of their difference (SE) as being normal distributed.
+# We can simulate n values from a normal distribution and calculate the proportion of values
+# that is on the other side of 0.
+n <- 1e5
+diff <- rnorm(n, -626.3, 56.3) # simulate values
+# These two values might be slightly different for you but should be elpd_diff (se_diff)
+# of the second best model.
+hist(diff) # look at the simulations
+mean(diff > 0) # proportion of values that have a difference of larger than 0.
+
+# Compare second best to third best model.
+mean(diff < -736.8)
+
+# Try and compare the second best model to the fourth best model.
+mean(diff --- ---)
+
+# Repeat the above and compare the fourth and the fifth model in the comparison table:
+diff <- rnorm(n, ---, ---)
+hist(---)
+mean(diff --- ---)
+

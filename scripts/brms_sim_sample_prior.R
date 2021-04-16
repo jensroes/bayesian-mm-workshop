@@ -58,20 +58,21 @@ hypothesis(fit_brm, "---")
 # Use any hypothesis from before:
 h <- hypothesis(fit_brm, "---")
 
-plot(h) 
+# Task: pass the object created with the hypothesis function to plot()
+plot(---) 
 
-# If you want to zoom in at zero
-plot(h, plot = F)[[1]] + coord_cartesian(xlim = c(-10, 10))
+# If you want to zoom in at zero:
+# Task: pass the object created with the hypothesis function to plot()
+plot(---, plot = F)[[1]] + coord_cartesian(xlim = c(-10, 10))
 
 
 # Aside, Post.Prob in the hypothesis output is the posterior probability 
 # which is calculated like this (see last session):
-beta <- posterior_samples(fit_brm, pars = "b_conditionb") %>% pull()
+beta <- posterior_samples(fit_brm, pars = "b_conditionb") %>% pull() # extract beta
 mean(beta > 0)
 mean(beta < 0)
 
 
 # Bonus: why is the probability interval (CI = credible interval in hypothesis)
 # different for the null hypothesis test than for the other two tests?
-# Compare to
-fixef(fit_brm)
+# Compare to: fixef(fit_brm)

@@ -1,0 +1,219 @@
+---
+title: "Bayesian mixed models with brms | ROPE"
+author: Jens Roeser 
+date: 'Last updated: `r Sys.Date()`'
+output: 
+  ioslides_presentation:
+#  revealjs::revealjs_presentation:
+    theme: simplex
+    highlight: zenburn
+    incremental: true
+    transition: slower
+    widescreen: true
+    smaller: true
+
+bibliography: ["references.bib"]
+csl: apa.csl
+link-citations: no
+
+---
+
+```{r setup, include=FALSE}
+library(citr)
+library(tidyverse)
+library(magrittr)
+library(lme4)
+library(brms)
+library(ggthemes)
+library(kableExtra)
+library(knitr)
+library(readxl)
+library(extrafont)
+library(broom)
+library(tidybayes)
+library(janitor)
+source("../scripts/functions.R")
+options("kableExtra.html.bsTable" = T)
+knitr::opts_chunk$set(echo = FALSE,
+                      comment=NA, 
+                      warning = FALSE,
+                      message =FALSE)
+theme_set(theme_few(base_size = 12) )
+```
+
+
+
+## ROPE
+
+
+```{r echo = T}
+fit_brm <- readRDS(file = "../stanout/brms_sim.rda")
+beta <- posterior_samples(fit_brm, pars = "b_conditionb") %>% pull()
+```
+
+```{r echo = TRUE}
+length(beta)
+```
+
+```{r echo = T}
+beta[1:5]
+```
+
+```{r echo = T}
+quantile(beta, probs = c(.025, .5, .975))
+```
+
+
+## ROPE
+
+<div style="float: left;width: 55%">
+  
+- Region of practical equivalence: range of values that are practically equivalent [@kruschke2010believe; @kruschke2011bayesian].
+- Point values don't represent our beliefs about what the null hypothesis is like: $H_0 = 0$
+- The ROPE is the range of values that are practically equivalent to a null effect.
+- Define region that is equivalent to no effect: all values in interval [-5, 5] 
+
+</div>
+
+<div style="float: right;width: 45%">
+
+```{r fig.height=4.5, fig.width=4.5}
+ggplot(data = NULL, aes(x = beta)) +
+  geom_histogram(alpha = .55,  position = "identity", show.legend = F) +
+  labs(x = bquote("Estimated effect"~hat(beta)), title = "Posterior probability distribution") 
+```
+</div>
+
+
+## ROPE
+
+<div style="float: left;width: 55%">
+
+> - Region of practical equivalence: range of values that are practically equivalent [@kruschke2010believe; @kruschke2011bayesian].
+> - Point values don't represent our beliefs about what the null hypothesis is like: $H_0 = 0$
+> - The ROPE is the range of values that are practically equivalent to a null effect.
+> - Define region that is equivalent to no effect: all values in interval [-5, 5] 
+
+```{r echo = T}
+library(bayestestR)
+rope(beta, range = c(-5, 5)) 
+```
+</div>
+
+<div style="float: right;width: 45%">
+
+```{r fig.height=4.5, fig.width=4.5}
+ggplot(data = NULL, aes(x = beta)) +
+  geom_histogram(alpha = .55,  position = "identity", show.legend = F) +
+  labs(x = bquote("Estimated effect"~hat(beta)), title = "Posterior probability distribution") 
+```
+</div>
+
+  
+  
+## ROPE
+  
+<div style="float: left;width: 55%">
+  
+> - Region of practical equivalence: range of values that are practically equivalent [@kruschke2010believe; @kruschke2011bayesian].
+> - Point values don't represent our beliefs about what the null hypothesis is like: $H_0 = 0$
+> - The ROPE is the range of values that are practically equivalent to a null effect.
+> - Define region that is equivalent to no effect: all values in interval [-5, 5] 
+
+```{r echo = T}
+library(bayestestR)
+rope(beta, range = c(-5, 5)) 
+```
+</div>
+
+
+<div style="float: right;width: 45%">
+
+```{r fig.height=4.5, fig.width=4.5}
+ggplot(data = NULL, aes(x = beta, fill = beta > -5 & beta < 5)) +
+  geom_histogram(alpha = .55,  position = "identity", show.legend = F) +
+  geom_vline(xintercept = 5, colour = "grey20", linetype = "dotted") +
+  geom_vline(xintercept = -5, colour = "grey20", linetype = "dotted") +
+  scale_fill_manual(values = c("grey", "darkred")) +
+  labs(x = bquote("Estimated effect"~hat(beta)), title = "Posterior probability distribution") 
+```
+</div>
+
+
+## ROPE
+
+<div style="float: left;width: 55%">
+
+> - Region of practical equivalence: range of values that are practically equivalent [@kruschke2010believe; @kruschke2011bayesian].
+> - Point values don't represent our beliefs about what the null hypothesis is like: $H_0 = 0$
+  > - The ROPE is the range of values that are practically equivalent to a null effect.
+> - Define region that is equivalent to no effect: all values in interval [-Inf, 5] 
+
+```{r echo = T}
+library(bayestestR)
+rope(beta, range = c(-Inf, 5))
+```
+</div>
+  
+  
+  
+<div style="float: left;width: 45%">
+  
+```{r fig.height=4.5, fig.width=4.5}
+ggplot(data = NULL, aes(x = beta, fill = beta > -Inf & beta < 5)) +
+  geom_histogram(alpha = .55,  position = "identity", show.legend = F) +
+  geom_vline(xintercept = 5, colour = "grey20", linetype = "dotted") +
+  scale_fill_manual(values = c("grey", "darkred")) +
+  labs(x = bquote("Estimated effect"~hat(beta)), title = "Posterior probability distribution") 
+```
+</div>
+  
+  
+  
+  
+## ROPE
+  
+>- Determine ROPE to assess the uncertainty of effect size [@makowski2019bayestestr]
+>- Calculate the standardised effect size $\delta$ from posterior: $\delta = \frac{\beta}{\sigma}$ 
+>- ROPE of [-0.1, 0.1] is the range of negligible effect sizes [@cohn1988statistical; @kruschke2018rejecting]. 
+
+## ROPE
+
+
+>- Determine ROPE to assess the uncertainty of effect size [@makowski2019bayestestr]
+>- Calculate the standardised effect size $\delta$ from posterior: $\delta = \frac{\beta}{\sigma}$ 
+>- ROPE of [-0.1, 0.1] is the range of negligible effect sizes [@cohn1988statistical; @kruschke2018rejecting]. 
+
+```{r echo = T}
+sigma <- posterior_samples(fit_brm, pars = "sigma") %>% pull()
+delta <- beta / sigma
+```
+
+```{r echo = T}
+mean(delta) # small effect (see Cohen's d)
+```
+
+## ROPE
+
+>- Determine ROPE to assess the uncertainty of effect size [@makowski2019bayestestr]
+>- Calculate the standardised effect size $\delta$ from posterior: $\delta = \frac{\beta}{\sigma}$ 
+>- ROPE of [-0.1, 0.1] is the range of negligible effect sizes [@cohn1988statistical;@kruschke2018rejecting]. 
+
+```{r echo = T}
+rope(delta, range = c(-0.1, 0.1)) 
+```
+
+- The ROPE value indicates the extent to which the posterior cannot rule out a negligible effect. 
+- A meaningful effect size should have a small proportion of posterior samples within the ROPE. 
+
+
+
+
+## References
+
+<style>
+slides > slide { overflow: scroll; }
+slides > slide:not(.nobackground):after {
+  content: '';
+}
+</style>

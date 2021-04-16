@@ -26,7 +26,7 @@ get_prior(model, data = data)
 
 
 # Specify priors. We want for 
-#*intercept: a normal distribution with a mean of 500 and a variance of 500
+#*intercept: a normal distribution with a mean of 500 and a variance of 250
 #*slope (b): a normal distribution with a mean of 0, and a variance of 100
 #*These priors are weakly informative.
 prior <- set_prior("normal(---, ---)", class = "Intercept") +
@@ -34,7 +34,8 @@ prior <- set_prior("normal(---, ---)", class = "Intercept") +
 
 
 # Fit mixed-effects model 
-fit_brm <- brm(formula = model, prior = prior, data = data)
+fit_brm <- brm(formula = model, prior = prior, data = data,
+               cores = 3, chains = 3) # to speed things up, lets run 3 chains in parallel
 
 
 # Evaluate model coefficients using the name of the model
@@ -45,4 +46,40 @@ fixef(---)
 saveRDS(object = fit_brm, 
         file = "stanout/brms_sim_with_prior.rda",
         compress = "xz")
+
+
+
+# weak
+prior <- set_prior("normal(500, 250)", class = "Intercept") +
+  set_prior("normal(0, 100)", class = "b")
+
+fit_brm_weak <- brm(formula = model, prior = prior, data = data)
+
+# flat
+prior <- set_prior("normal(500, 250)", class = "Intercept") 
+
+fit_brm_flat <- brm(formula = model, prior = prior, data = data)
+
+# zero
+prior <- set_prior("normal(500, 250)", class = "Intercept") +
+  set_prior("normal(0, 1)", class = "b")
+
+fit_brm_zero <- brm(formula = model, prior = prior, data = data)
+
+# against hypothesis
+prior <- set_prior("normal(500, 250)", class = "Intercept") +
+  set_prior("normal(-500, 10)", class = "b")
+
+fit_brm_against <- brm(formula = model, prior = prior, data = data, 
+                       cores = 3, chains = 3)
+
+fixef(fit_brm_weak)
+fixef(fit_brm_flat)
+fixef(fit_brm_zero)
+fixef(fit_brm_against)
+
+beta <- posterior_samples(fit_brm_against, pars = "b_conditionb") %>% pull()
+hist(beta)
+
+
 

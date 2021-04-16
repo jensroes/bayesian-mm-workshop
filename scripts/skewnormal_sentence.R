@@ -21,7 +21,7 @@ get_prior(model, data = data)
 
 # Setup priors
 prior <- set_prior("normal(250, 20)", class = "Intercept") +
-         set_prior("normal(0, 4)", class = "Intercept", dpar = "alpha")  # this is the decay rate (tau in slides) in log msecs
+         set_prior("normal(0, 2)", class = "Intercept", dpar = "alpha")  # this is the decay rate (tau in slides) in log msecs
 
 
 # Run model

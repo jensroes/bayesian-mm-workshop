@@ -21,14 +21,18 @@ jens_data_machine <- function(intercept = 250, slope = 25,
   data <- tibble(participant_id = rep(1:participants, each = trials*conditions),
                  trial_id = rep(1:trials, conditions*participants),
                  condition = rep(letters[1:conditions], trials*participants),
-                 y = -999) 
+                 y = -999) %>%
+    group_by(participant_id) %>%
+    mutate(trial_id = 1:n()) %>%
+    ungroup()
   
   # iterate over subject to generate data for each one
   data_sim <- data %>% group_by(participant_id, condition) %>%
     mutate(y = if_else(condition == letters[1],
                            rnorm(trials, intercept[participant_id], error), y),
                y = if_else(condition == letters[2],
-                           rnorm(trials, intercept[participant_id] + slope[participant_id], error), y))
+                           rnorm(trials, intercept[participant_id] + slope[participant_id], error), y)) %>%
+    ungroup()
 #  print(paste("There you go! Data for", participants, "participants with each contributing", trials, "trials to 2 conditions.")) 
   return(data_sim)
   #fit <- lmer(y ~ condition + (1|participant_id), data = data_sim)

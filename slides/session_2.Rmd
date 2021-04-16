@@ -45,558 +45,13 @@ data <- read_csv("../data/sentence_transitions.csv")
 ```
 
 
-# Outline
 
 ## Outline
 
->- What are priors?
 >- The notorious Bayes Factor   
 >- Families of distributions / models of keystroke data
 >- Model comparison (leave-one-out cross-validation)
 >- Summary / reading recommendations
-
-
-# What are priors? | chapter 7 in @lee2014bayesian
-
-
-## Priors
-
-$$
-\text{posterior} \propto \text{prior} \cdot \text{likelihood}
-$$
-
-- Prior knowledge about plausible parameter values
-- Help parameter estimation by limiting the parameter space.
-- Where does the sampler has to search for the target distribution.
-- This knowledge is expressed as probability distributions (e.g. normal distributions).
-- Small data samples are sensitive to prior information.
-- Data overcome the prior (automatic Ockham's razor).
-- Bayes Factors are sensitive to priors.
-- We know more than people often think!
-
-
-## Priors: intercept
-
-<div style="float: left;width: 40%;">
-
-- *A priori*, each value in the parameter space is equally possible. 
-- We want to help our sampler by constraining the parameter space smaller!
-- Let's think about the parameter space for models of keystroke data.
-
-</div>
-
-<div style="float: right;width: 50%;">
-
-```{r fig.width=5}
-tibble(intercept = runif(1000, -100000, 100000),
-       slope = runif(1000,  -10000, 10000)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-  labs(subtitle = "Parameter space")
-```
-</div>
-
-## Priors: intercept
-
-<div style="float: left;width: 40%;">
-
->- Intercepts are some form of average (depending on contrast coding).
->- Can keystroke intervals range between -$\infty$ and $\infty$? 
-- What the lower and upper end?
-
-</div>
-
-
-<div style="float: right;width: 50%;">
-
-```{r fig.width=5}
-tibble(intercept = runif(1000, -100000, 100000),
-       slope = runif(1000,  -10000, 10000)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-  labs(subtitle = "Parameter space")
-```
-</div>
-
-
-## Priors: intercept
-
-<div style="float: left;width: 40%;">
-
->- Intercepts are some form of average (depending on contrast coding).
->- Can keystroke intervals range between -$\infty$ and $\infty$? 
->- What the lower and upper end?
-- How long is the average pause before a sentence?
-
-
-$$
-\text{pre-sentence pause} \sim N(???, ???)
-$$
-</div>
-
-
-
-
-<div style="float: right;width: 50%;">
-
-```{r fig.width=5}
-tibble(intercept = runif(1000, 0, 10000),
-       slope = runif(1000,  -10000, 10000)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-  labs(subtitle = "Parameter space")
-```
-
-</div>
-
-
-## Priors: intercept
-
-<div style="float: left;width: 40%;">
-
->- Intercepts are some form of average (depending on contrast coding).
->- Can keystroke intervals range between -$\infty$ and $\infty$? 
->- What the lower and upper end?
-- How long is the average pause before a sentence?
-
-
-$$
-\text{pre-sentence pause} \sim N(1000 \text{ msecs}, ???)
-$$
-</div>
-
-
-
-
-<div style="float: right;width: 50%;">
-
-```{r fig.width=5}
-tibble(intercept = runif(1000, 0, 10000),
-       slope = runif(1000,  -10000, 10000)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-  labs(subtitle = "Parameter space")
-```
-
-</div>
-
-
-## Priors: intercept
-
-<div style="float: left;width: 40%;">
-
->- Intercepts are some form of average (depending on contrast coding).
->- Can keystroke intervals range between -$\infty$ and $\infty$? 
->- What the lower and upper end?
-- How long is the average pause before a sentence?
-- How short / long can this be?
-- Plausible probability distribution for pre-sentence pauses:
-
-$$
-\text{pre-sentence pause} \sim N(1000 \text{ msecs}, ???)
-$$
-</div>
-
-
-
-<div style="float: right;width: 50%;">
-
-```{r fig.width=5}
-tibble(intercept = runif(1000, 0, 10000),
-       slope = runif(1000,  -10000, 10000)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-  labs(subtitle = "Parameter space")
-```
-
-</div>
-
-## Priors: intercept
-
-<div style="float: left;width: 40%;">
-
->- Intercepts are some form of average (depending on contrast coding).
->- Can keystroke intervals range between -$\infty$ and $\infty$? 
->- What the lower and upper end?
-- How long is the average pause before a sentence?
-- How short / long can this be?
-- Plausible probability distribution for pre-sentence pauses:
-
-
-$$
-\text{pre-sentence pause} \sim N(1000 \text{ msecs}, 500\text{ msecs})
-$$
-</div>
-
-
-<div style="float: right;width: 50%;">
-
-```{r fig.width=5}
-tibble(intercept = runif(1000, 0, 10000),
-       slope = runif(1000,  -10000, 10000)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-  labs(subtitle = "Parameter space")
-```
-
-</div>
-
-
-
-## Priors: intercept
-
-<div style="float: left;width: 40%;">
-
->- Intercepts are some form of average (depending on contrast coding).
->- Can keystroke intervals range between -$\infty$ and $\infty$? 
->- What the lower and upper end?
->- How long is the average pause before a sentence?
->- How short / long can this be?
-- Plausible probability distribution for pre-sentence pauses:
-
-
-$$
-\text{pre-sentence pause} \sim N(1000 \text{ msecs}, 500\text{ msecs})
-$$
-</div>
-
-
-
-
-
-<div style="float: right;width: 50%;">
-
-```{r fig.width=5}
-p <- tibble(intercept = rnorm(10000, mean = 1000, sd = 500),
-       slope = runif(10000,  -10000, 10000)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-    geom_point(size = .25, colour = "transparent") + 
-  geom_density_2d_filled(alpha = 0.25, show.legend = F) +
-  geom_density_2d(alpha = 0.5, show.legend = F, size = .15, color = "black") +
-  scale_fill_viridis_d(direction = -1, begin = 0, end = .6) +
-  scale_x_continuous(limits = c(0, 10000)) +
-  labs(subtitle = "Parameter space")
-
-ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "x")
-```
-
-</div>
-
-## Priors: slope
-
-<div style="float: left;width: 50%;">
-
-- Say, we compare people writing in L1 and L2.
-- Writing in L2 can be harder because of, e.g., lexical retrieval.
-- Hence, pre-word / pre-sentence keystroke intervals are sometimes longer.
-- What is a plausible prior for this delay?
-
-
-
-</div>
-
-<div style="float: right;width: 50%;">
-
-```{r fig.width=5}
-p <- tibble(intercept = rnorm(10000, mean = 1000, sd = 500),
-       slope = runif(10000,  -10000, 10000)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-    geom_point(size = .25, colour = "transparent") + 
-  geom_density_2d_filled(alpha = 0.25, show.legend = F) +
-  geom_density_2d(alpha = 0.5, show.legend = F, size = .15, color = "black") +
-  scale_fill_viridis_d(direction = -1, begin = 0, end = .6) +
-  scale_x_continuous(limits = c(0, 10000)) +
-  labs(subtitle = "Parameter space")
-
-ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "x")
-```
-
-</div>
-
-
-## Priors: slope
-
-<div style="float: left;width: 50%;">
-
->- Say, we compare people writing in L1 and L2.
->- Writing in L2 can be harder because of, e.g., lexical retrieval.
->- Hence, pre-word / pre-sentence keystroke intervals are sometimes longer.
->- What is a plausible prior for this delay?
-
-
-$$
-\text{slowdown for L2s} \sim N(???, ???)
-$$
-</div>
-
-<div style="float: right;width: 50%;">
-
-```{r fig.width=5}
-p <- tibble(intercept = rnorm(10000, mean = 1000, sd = 500),
-       slope = runif(10000,  -10000, 10000)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-    geom_point(size = .25, colour = "transparent") + 
-  geom_density_2d_filled(alpha = 0.25, show.legend = F) +
-  geom_density_2d(alpha = 0.5, show.legend = F, size = .15, color = "black") +
-  scale_fill_viridis_d(direction = -1, begin = 0, end = .6) +
-  scale_x_continuous(limits = c(0, 10000)) +
-  labs(subtitle = "Parameter space")
-
-ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "x")
-```
-
-</div>
-
-
-
-## Priors: slope
-
-<div style="float: left;width: 50%;">
-
->- Say, we compare people writing in L1 and L2.
->- Writing in L2 can be harder because of, e.g., lexical retrieval.
->- Hence, pre-word / pre-sentence keystroke intervals are sometimes longer.
->- What is a plausible prior for this delay?
-
-
-$$
-\text{slowdown for L2s} \sim N(250 \text{ msecs}, 100\text{ msecs})
-$$
-</div>
-
-<div style="float: right;width: 50%;">
-
-```{r fig.width=5}
-p <- tibble(intercept = rnorm(10000, mean = 1000, sd = 500),
-       slope = runif(10000,  -10000, 10000)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-    geom_point(size = .25, colour = "transparent") + 
-  geom_density_2d_filled(alpha = 0.25, show.legend = F) +
-  geom_density_2d(alpha = 0.5, show.legend = F, size = .15, color = "black") +
-  scale_fill_viridis_d(direction = -1, begin = 0, end = .6) +
-  scale_x_continuous(limits = c(0, 10000)) +
-  labs(subtitle = "Parameter space")
-
-ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "x")
-```
-
-</div>
-
-
-
-## Priors: slope
-
-<div style="float: left;width: 50%;">
-
->- Say, we compare people writing in L1 and L2.
->- Writing in L2 can be harder because of, e.g., lexical retrieval.
->- Hence, pre-word / pre-sentence keystroke intervals are sometimes longer.
->- What is a plausible prior for this delay?
-
-
-$$
-\text{slowdown for L2s} \sim N(250 \text{ msecs}, 100\text{ msecs})
-$$
-</div>
-
-<div style="float: right;width: 50%;">
-
-```{r fig.width=5}
-p <- tibble(intercept = rnorm(10000, mean = 1000, sd = 500),
-       slope = rnorm(10000,  250, 100)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-    geom_point(size = .25, colour = "transparent") + 
-  geom_density_2d_filled(alpha = 0.25, show.legend = F) +
-  geom_density_2d(alpha = 0.5, show.legend = F, size = .15, color = "black") +
-  scale_fill_viridis_d(direction = -1, begin = 0, end = .6) +
-  scale_x_continuous(limits = c(0, 10000)) +
-  scale_y_continuous(limits = c(-300,1000), breaks = seq(-300, 900, 300)) +
-  labs(subtitle = "Parameter space")
-ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "both")
-```
-
-</div>
-
-
-## Priors: slope
-
-<div style="float: left;width: 50%;">
-
-- We often don't know what the slope might be or can't make strong predictions about the effects.
-- In fact, this might be why we run a statistical model.
-- However, we still have an intuition what is plausible and what isn't.
-- Say, words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
-- We are not sure, so let's use a mean of 0 msecs; what would be a possible $\sigma$?
-
-</div>
-
-
-## Priors: slope
-
-<div style="float: left;width: 50%;">
-
->- We often don't know what the slope might be or can't make strong predictions about the effects.
->- In fact, this might be why we run a statistical model.
->- However, we still have an intuition what is plausible and what isn't.
->- Say, words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
-- We are not sure, so let's use a mean of 0 msecs; what would be a possible $\sigma$?
-
-$$
-\text{slope} \sim N(0 \text{ msecs}, ???)
-$$
-
-
-</div>
-
-## Priors: slope
-
-<div style="float: left;width: 50%;">
-
->- We often don't know what the slope might be or can't make strong predictions about the effects.
->- In fact, this might be why we run a statistical model.
->- However, we still have an intuition what is plausible and what isn't.
->- Say, words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
-- We are not sure, so let's use a mean of 0 msecs; what would be a possible $\sigma$?
-
-$$
-\text{slope} \sim N(0 \text{ msecs}, 100\text{ msecs})
-$$
-
->- We could even truncate the prior if we believe that the value must be smaller / larger than a certain value.
-
-
-</div>
-
-
-
-## Priors: slope
-
-<div style="float: left;width: 50%;">
-
->- We often don't know what the slope might be or can't make strong predictions about the effects.
->- In fact, this might be why we run a statistical model.
->- However, we still have an intuition what is plausible and what isn't.
->- Say, words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
->- We are not sure, so let's use a mean of 0 msecs; what would be a possible $\sigma$?
-
-
-$$
-\text{slope} \sim N(0 \text{ msecs}, 100\text{ msecs})
-$$
-
->- We could even truncate the prior if we believe that the value must be smaller / larger than a certain value.
-
-
-</div>
-
-<div style="float: right;width: 50%;">
-
-
-```{r fig.width=5}
-p <- tibble(intercept = rnorm(10000, mean = 2000, sd = 1000),
-       slope = rnorm(10000,  0, 100)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-    geom_point(size = .25, colour = "transparent") + 
-  geom_density_2d_filled(alpha = 0.25, show.legend = F) +
-  geom_density_2d(alpha = 0.5, show.legend = F, size = .15, color = "black") +
-  scale_fill_viridis_d(direction = -1, begin = 0, end = .6) +
-  scale_x_continuous(limits = c(0, 20000)) +
-  scale_y_continuous(limits = c(-300,1000), breaks = seq(-300, 900, 300)) +
-  labs(subtitle = "Parameter space")
-
-ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "both")
-```
-</div>
-
-
-## Priors
-
-<div style="float: left;width: 50%;">
-
->- Even **weakly informative** priors are helpful for estimating parameter values.
->- They help to constrain the parameter space.
->- The parameter space should reflect what we think is plausible.
->- This is important for more complex models (mixtures, Wiener diffusion models).
-
-</div>
-
-
-<div style="float: right;width: 50%;">
-
-
-```{r fig.width=5}
-p <- tibble(intercept = rnorm(10000, mean = 2000, sd = 1000),
-       slope = rnorm(10000,  0, 100)) %>%
-  ggplot(aes(x=intercept, y=slope)) +
-    geom_point(size = .25, colour = "transparent") + 
-  geom_density_2d_filled(alpha = 0.25, show.legend = F) +
-  geom_density_2d(alpha = 0.5, show.legend = F, size = .15, color = "black") +
-  scale_fill_viridis_d(direction = -1, begin = 0, end = .6) +
-  scale_x_continuous(limits = c(0, 20000)) +
-  scale_y_continuous(limits = c(-300,1000), breaks = seq(-300, 900, 300)) +
-  labs(subtitle = "Parameter space")
-
-ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "both")
-```
-</div>
-
-## Priors
-
->- Check defaults used last session:
-
-```{r echo = T, eval = F}
-fit_brm <- readRDS(file = "../stanout/brms_sim.rda")
-prior_summary(fit_brm)
-```
-
-```{r echo = F, eval = T}
-fit_brm <- readRDS(file = "../stanout/brms_sim.rda")
-prior <- prior_summary(fit_brm) # %>% as_data_frame() %>% select(-source)
-sd_prior <- prior %>% filter(class == "sd" & group == "") %>% pull(prior)
-prior %>% as_tibble() %>%
-  mutate(prior = ifelse(class == "b", "(flat)", prior),
-         prior = ifelse(class == "sd", sd_prior, prior)) %>%
-  select(prior:group) %>% kable() %>%
-  kable_styling("striped", full_width = F) %>%
-  column_spec(1, width = "20em") %>%
-  column_spec(2:4, width = "10em") 
-```
-
-
-## Specify model
-
-
-```{r echo = T, eval = F}
-# Create model
-model <- bf(outcome ~ predictor + (1|participant))
-# specifying model outside of brms works for lmer too.
-# bf = brmsformula
-
-# Fit brms
-fit <- brm(model, data = data)
-```
-
-
-
-## Specifying priors
-
-
-```{r echo = T, eval = F}
-# Create model
-model <- bf(outcome ~ predictor + (1|participant))
-
-# Look at priors: some have reasonable defaults, others are flat.
-get_prior(model, data = data)
-
-# Specify priors
-prior <- set_prior("normal(1000, 500)", class = "Intercept", lb = 0, ub = 100000) +
-         set_prior("normal(0, 100)", class = "b") # for slope(s)
-
-# Fit brms
-fit <- brm(model, data = data, prior = prior)
-```
-
-
-
-
-## Exercise: priors
-
->- Adding priors to last session's model in `brms_sim_with_prior.R`; replace the `---`s according to the comments in the script.
->- If you have time, make the standard deviation of the prior for slope $b$ either much larger or smaller and check how this affects the posterior estimate.
 
 
 # The notorious Bayes Factor | chapter 7.6 in @lee2014bayesian
@@ -608,7 +63,7 @@ fit <- brm(model, data = data, prior = prior)
 
 >- *p*-values have two possible outcomes: 
 >1. reject the null (i.e. $p<0.05$)
->2. inconclusive (i.e. $p>0.05$); try again
+>2. inconclusive (i.e. $p>0.05$ -- go back to start)
 
 >- BFs have a continuum of three possible outcomes [@dienes2014using; @dienes2016bayes; @dienes2018four]:
 >1. Reject the null / alternative hypothesis
@@ -630,10 +85,12 @@ fit <- brm(model, data = data, prior = prior)
 <div style="float: right;width: 75%;">
 
 - How much more probable is one model (hypothesis) over the other?
-- How convinced should we be about the evidence for our hypothesis as opposed to, say, a null hypothesis?
+- How convinced should we be about the evidence for our hypothesis $H_1$ as opposed to, say, a null hypothesis $H_0$?
 - Savage-Dickey density ratio for "nested models" [@jeffreys1961theory; @dickey1970weighted].
 - Height of the posterior density at zero compared to the height of the prior density at zero.
-- Nested models: $H_0$ is nested in $H_1$ because in $H_0$ parameter of interest is fixed ($\beta=0$) but is free to vary in $H_1$ ($\beta\neq0$); $H_0$ can be obtained from $H_1$ by fixing parameter of interest.
+- **Nested models:** 
+  - $H_0$ is nested in $H_1$ because in $H_0$ the parameter of interest is fixed ($\beta=0$) but is free to vary in $H_1$ ($\beta\neq0$)
+  - $H_0$ can be obtained from $H_1$ by fixing parameter of interest.
 </div>
 
 
@@ -656,7 +113,9 @@ $$
 >- How convinced should we be about the evidence for our hypothesis as opposed to, say, a null hypothesis?
 >- Savage-Dickey density ratio for "nested models" [@jeffreys1961theory; @dickey1970weighted].
 >- Height of the posterior density at zero compared to the height of the prior density at zero.
->- Nested models: $H_0$ is nested in $H_1$ because in $H_0$ parameter of interest is fixed ($\beta=0$) but is free to vary in $H_1$ ($\beta\neq0$); $H_0$ can be obtained from $H_1$ by fixing parameter of interest.
+- **Nested models:** 
+  - $H_0$ is nested in $H_1$ because in $H_0$ the parameter of interest is fixed ($\beta=0$) but is free to vary in $H_1$ ($\beta\neq0$)
+  - $H_0$ can be obtained from $H_1$ by fixing parameter of interest.
 
 </div>
 
@@ -1201,9 +660,38 @@ prior <- set_prior("normal(250, 20)", class = "Intercept") +
 ## Skew-Normal
 
 >- Gaussian with extra skew-parameter
->- Parameters:  mean $\mu$, standard deviation $\sigma$ 
+>- Parameters: mean $\mu$, standard deviation $\sigma$ 
 >- Skewness $\alpha$: Gaussian is $\alpha = 0$; positive skew $\alpha > 0$; negative skew $\alpha < 0$; 
   
+  
+```{r}
+library(PearsonDS)
+
+skewrnorm <- function(x = seq(-10, 10, .1), mean = 0, variance = 5, skewness = 0, kurtosis = 3){
+  moments <- c(mean = mean, variance = variance, skewness = skewness, kurtosis = kurtosis)
+  x <- dpearson(x, moments = moments)
+  return(x)
+}
+
+tibble("t1" = skewrnorm(skewness = 0),
+       "t2" = skewrnorm(skewness = .8),
+       "t3" = skewrnorm(skewness = -.8),
+       x = seq(-10, 10, .1)) %>%
+  pivot_longer(-x) %>%
+  group_by(name) %>%
+  mutate(mean = mean(value),
+         median = mean(value)) %>%
+  ggplot(aes(x = x, y = value, colour = name)) +
+  geom_line() +
+  scale_x_continuous(limits = c(-10, 10)) +
+  scale_color_colorblind(breaks = paste0("t",1:3), labels = c("No skew", "Right skew", "Left skew")) +
+  labs(colour = "", subtitle = bquote("Gaussian parameter values:"~mu==0*","~sigma==5), x = "x", y = "density") +
+  theme(legend.justification = "top") +
+  geom_vline(xintercept = 0, linetype = "dotted") 
+
+
+```
+
 
 ## Mixture model
 
@@ -1211,7 +699,7 @@ $$
 y \sim \theta \cdot N(\mu_1, \sigma_1) + (1-\theta) \cdot N(\mu_2, \sigma_2) 
 $$
 
->- Finite mixture model with two mixture components. 
+>- Finite mixture model with two mixture components with a straight forward interpretation
 >- Keystroke intervals are a mix of two independent processes [@roeser2021]:
 >- Short keystroke intervals: e.g. normal planning / execution
 >- Long keystroke intervals: disfluent execution / planning
@@ -1220,6 +708,8 @@ $$
   - $\mu_1, \sigma_1$: mean and sd of one distribution
   - $\mu_2, \sigma_2$: mean and sd of other distribution
   - $\theta$: mixing proportion of distributions
+
+- Mixing proportion $\theta$ is the probability of *difficulty* in the sample (or condition).
 
 
 ```{r}
@@ -1331,7 +821,7 @@ Mixture model     Another (cognitive) process
 
 <div style="float: left;width: 65%;">
 
-![](pics/modelcomps.png){width="98%"}
+![](pics/modelcomps.png){width="94%"}
 
 </div>
 
@@ -1620,7 +1110,7 @@ mixturemodel <- readRDS("../stanout/mixture_model_sentence.rda")
 
 ## Mixture-model parameters (population level)
 
-```{r echo = T, fig.height=4}
+```{r echo = T, fig.height=3.75}
 coefs <- c("b_mu1_Intercept", "b_mu2_Intercept", "b_theta2_Intercept")
 mcmc_plot(mixturemodel, type = "hist", pars = coefs)
 ```

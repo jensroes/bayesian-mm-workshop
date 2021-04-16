@@ -2,10 +2,8 @@
 library(tidyverse)
 library(brms)
 
-
 # Load model
 fit_brm <- readRDS(file = "stanout/brms_sim_with_prior.rda")
-
 
 # Check the priors that were used.
 # Task: apply the function below to the model object, you loaded above.
