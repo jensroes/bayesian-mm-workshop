@@ -46,7 +46,7 @@ theme_set(theme_few(base_size = 12) )
 ## Before we start ...
 
 >- Download the workshop folder from GitHub via RStudio.
->- Open RStudio $>$ `New Project` $>$ `Version Control` $>$ `Git` $>$ Paste URL $>$ `Create Project`
+>- Open RStudio $>$ `File` $>$ `New Project` $>$ `Version Control` $>$ `Git` $>$ paste url $>$ `Create Project`
 >- https://github.com/jensroes/bayesian-mm-workshop.git
 >- Exercise *R* scripts, data, slides
 >- Create a folder called "stanout"
@@ -55,13 +55,14 @@ theme_set(theme_few(base_size = 12) )
 ## Outline
 
 >- Why Bayesian and difference to (classical) frequentist approaches
+>- Fit a Bayesian mixed effects model (diving in the deep end)
 >- Convergence diagnostics 
 >- Evaluating the posterior parameter 
->- What are priors?
->- There will be exercises!
+>- What are priors? (shouldn't this be the first item)
+>- There will be exercises!!! (yay)
 
 
-# Why go Bayesian?
+# Why go Bayesian? | see @kruschke2014doing. Full disclosure: I'm biased! 
 
 
 ## Two universes
@@ -74,36 +75,48 @@ theme_set(theme_few(base_size = 12) )
 ## Null-hypothesis significance testing (NHST)
 
 $$
-P(\text{data} \mid H_0 = \text{TRUE})
+p(\text{data} \mid H_0 = \text{TRUE})
 $$
 
->- aka frequentist statistics; *p*-value based statistics
->- Inference: evaluating the probability of data assuming that the null hypothesis is true.
->- If the data are extreme enough, the null hypothesis becomes implausible.
->- Conclusion: the alternative hypothesis is assumed if the null hypothesis was rejected.
->- Data are variable and parameters are fixed
+>- Classical / frequentist statistics; *p*-value based statistics
+>- Evaluating the probability of data assuming that the null hypothesis $H_0$ is true.
+>- If the data are extreme enough, $H_0$ is concluded to be implausible (rejected).
+>- If $H_0$ is implausible, $H_1$ (alternative hypothesis) is assumed.
 
-## NHST and its problems
 
-- Intuitive statistical significance is not binary but continuous.
-- How often are we actually interested in the 0 or do seriously believe it?
-- What are you doing if *p*-value$=0.051$? 
-- Trade-off of effect size and sample size: 
-- How plausible is a small / huge effect (e.g. mean difference, correlation)?
-- *p*-values vs parameter estimation (compare probability models).
+## NHST and its problems {.columns-2}
+
+- Intuitively, statistical significance is not binary but continuous.
+- How often are we actually interested in or seriously believe in $H_0$?
+- What are you doing if $p=0.051$? 
 - Stopping rule
-- Inference is based on a large number of imaginary replications.
-- $\alpha$-level of 0.05 implies that 5% of replications will:
+- $\alpha$-level of 0.05 implies that 5% of (imaginary) replications will:
     - detect an effect that isn't real 
     - do not detect and effect that is real
+    - reality seems even worse [@amrhein2019inferential;@loken2017measurement]
 
-## Convergence failure for `lmer` models
+\
 
-- Maximal random effects structure [@baayen2008mixed;@barr2013random]
-- `(g)lmer` fail to convergence 
+- Trade-off of effect size and sample size: 
+  - Smaller effects can become significant when the sample is large enough.
+  - But how plausible is a small (e.g. mean difference, correlation) for what we are interested in?
+  - What really matters is that the size of the effect is what we would expect.
+  - and finding the right model of the data.
+- Systematic misinterpretations of *p*-values [@colquhoun2017reproducibility; @greenland2016statistical] and CIs [@hoekstra2014robust; @morey2016fallacy].
+
+
+
+## Convergence failure for `lmer` models | `outcome ~ condition + (condition|participant) + (condition|item)` {.columns-2}
+
+
+- Maximal random effects structure [@baayen2008mixed; @barr2013random]
 - Overparametrisation: unidentifiable parameter estimates [@bates2015parsimonious]
-- Solutions: reducing model complexity, changing optimisers
-- Then the reason for favouring a model becomes the failure to fit anything more complex; some sources of random errors will not be addressed.
+- Solutions: reducing model complexity, changing optimizers
+
+\
+
+- Model selection based on failure to fit a more complex one.
+- Some sources of random errors will not be addressed.
 - Bayesian model converge *by definition* (as the number of iterations approaches $\infty$).
 
 
@@ -114,23 +127,13 @@ $$
 
 \
 
-> Given the data (and our prior knowledge),
+> Given the data (and our prior knowledge).
 
 \
 
+> - It's often very similar to what people *think* frequentist quantities mean [@nicenboim2016statistical].
 > - What interval contains an unobserved parameter with .95 (or some other) probability?
-> - What's the relative weight of evidence for one model (e.g., 'null') vs. another (e.g., an alternative)?
-
-
-
-## Why is Bayes important for linguistis (and everyone else)?
-
->- Inference is a function of data, existing knowledge and a probability model.
->- Evidence is summarised a probability distribution of parameter values.
->- Useful for small data sets for which prior information might play a huge role.
->- Probabilisitic sampling can handle: missing data problems, complex models (many parameters, sources of random error), ceiling / floor effects, identifyability issues.
->- Results are not dependent on 'sampling plan' [@kruschke2018rejecting].
->- Flexible ways of modeling data and deriving inference are **now** easily available (e.g. `brms`, `rstanarm`, `rethinking`).
+> - What's the relative weight of evidence for one model (e.g., $H_0$) vs. another (e.g., $H_1$)?
 
 
 ## Why is Bayes important for linguistis (and everyone else)?
@@ -151,13 +154,24 @@ $$
 p(H \mid \text{data})
 $$
 
+
+
+## Why is Bayes important for linguistis (and everyone else)?
+
+>- Useful for small data sets for which prior information might play a huge role.
+>- Probabilisitic sampling can handle: missing data problems, complex models (many parameters, sources of random error), ceiling / floor effects, identifyability issues.
+>- Results are not dependent on sampling plan [@kruschke2018rejecting].
+>- Flexible data modeling is **now** easily available (`brms`, `rstanarm`, `rethinking`).
+
+
+
 ## Why is Bayes important for linguistis (and everyone else)?
 
 - Estimate credibility over parameter values based on the observed data [@kruschke2014doing].
 - Given the data, what parameter values should we believe in with most confidence.
 - For this we need to start with
 1. a probability model (e.g. a normal distribution)
-2. *prior* expectations as to the parameter values of this model (e.g. the mean $\mu$, the mean difference $\beta$, the variability in the data $\sigma$)
+2. *prior* expectations (on e.g. means, difference, variability)
 
 
 
@@ -183,25 +197,24 @@ $$
 p(\theta \mid y) \propto p(\theta) \cdot p(y \mid \theta)
 $$
 
->- The posterior is proportional to the prior times the likelihood.
->- Bayes' Theorem allows us to determine probability distributions of parameter values from the data (plus prior).
+>- Bayes' Theorem allows us to determine probability distributions of parameter values.
 >- In maximum likelihood estimation we search for the parameters that maximize the log-likelihood.
->- Bayesian estimation goes a step further and uses the likelihood to update existing beliefs in different parameter values.
+>- Bayesian estimation uses the likelihood to update existing beliefs in different parameter values.
 >- How much we believe in different parameter values depends on the data and what we already know.
+>- We update our beliefs as new information becomes available.
 
 
-
-# Fitting a model in `brms` | @brms1
+# Fitting a model in `brms` | [@brms1; @brms2; @burkner2019ordinal; @burkner2019bayesian]
 
 ## `brms`
 
-- *R* package for Bayesian models is no more complicated than `lme4`.
+- *R* package for Bayesian models
+- (Almost) no more complicated to fit than `lme4`s.
 - More probability models than other regressions packages:
   - `gaussian`, `lognormal`, `bernoulli`, `poisson`, `zero_inflated_poisson`, `skew_normal`, `shifted_lognormal`, `exgaussian`, *et cetera*
-  - and allows probabilistic mixture models, nonlinear regression models, (un)equal variance signal-detection theory, multivariate models
+  - and allows mixture models, nonlinear syntax, (un)equal variance signal-detection theory, multivariate models
 - Under the hood: `brms` creates Stan code to compile a probabilistic MCMC (Markov Chain Monte Carlo) sampler.
 - Compiling the sampler and for the sampler to obtain the full posterior can take times.
-- Check the tutorials `brms` author Paul-Christian Bürkner's [@brms1; @brms2; @burkner2019ordinal; @burkner2019bayesian]
 
 
 
@@ -248,9 +261,9 @@ ggplot(data, aes(x = condition, y = y)) +
 <div style="float: left;width: 25%">
 > - You will use the same "data" in the exercises.
 > - Think about it as keystroke intervals :)
-> - Parameter of interest: difference between conditions.
-> - After accounting for variability in the data associated with the sampling process.
+> - Parameter of interest: difference between conditions (slope).
 > - Mixed-effects model combine fixed and random effects.
+> - After accounting for variability associated with the sampling process.
 
 </div>
 
@@ -288,7 +301,7 @@ ggplot(data_sum, aes(x = condition, y = mean, colour = diff)) +
 
 $$
 y_i \sim N(\mu_i, \sigma^2)\\
-\mu_i = \beta_0 + \text{condition}_i\cdot\beta_1 + u_i\\
+\mu_i = \beta_0 + \text{condition}_i\cdot\beta_1 + \text{participant}_i\\
 $$
 
 - Outcome variable $y$
@@ -303,7 +316,7 @@ $$
 
 $$
 y_i \sim N(\mu_i, \sigma^2)\\
-\mu_i = \beta_0 + \text{condition}_i\cdot\beta_1 + u_i\\
+\mu_i = \beta_0 + \text{condition}_i\cdot\beta_1 + \text{participant}_i\\
 $$
 
 >- Treatment contrast: condition `a = 0`, condition `b = 1` 
@@ -314,9 +327,9 @@ contrasts(factor(data$condition)) # default contrast
 
 >- Given the data $y$ and this model, we can estimate $\beta_0$ and $\beta_1$.
 >- For a Bayesian model we still need priors (end of session).
->- Intercept $\beta_0$: estimated mean of condition *a* (you see why?)
->- Slope $\beta_1$: difference between condition *a* and condition *b*
->- $u$ is participant variance with $N(0,\sigma_u)$
+>- Intercept $\beta_0$: estimated mean of condition *a*.
+>- Slope $\beta_1$: difference between condition *a* and *b*.
+>- Participant variance with $N(0,\sigma_u)$
 
 
 ## *R* syntax
@@ -389,7 +402,7 @@ fixef(fit_brm) # Coefficients of Bayesian model
 </div>
 
 
-# Convergence diagnostics
+# Convergence diagnostics | see @lambert2018student for HMC
 
 
 ## So what about this?
@@ -417,10 +430,9 @@ fixef(fit_brm) # Coefficients of Bayesian model
 
 >- **Hamiltonian Monte Carlo:** Markov chain Monte Carlo method for obtaining random samples.
 >- Converge to being distributed according to a target probability distribution.
-- Probability of values proposed by the sampler is estimated given the data and the prior.
-- Direction changes if probability of proposed estimate is lower than previous one.
-- Priors can be used to limit the parameter space (which is otherwise infinite) but are updated at every step.
-- Parameter space is really multi-dimensional.
+>- Probability of random samples is estimated given the data and the prior.
+>- Direction changes if probability of proposed estimate is lower than previous one.
+>- Parameter space is really multi-dimensional.
 
 </div>
 
@@ -431,9 +443,8 @@ fixef(fit_brm) # Coefficients of Bayesian model
 
 >- **Hamiltonian Monte Carlo:** Markov chain Monte Carlo method for obtaining random samples.
 >- Converge to being distributed according to a target probability distribution.
->- Probability of values proposed by the sampler is estimated given the data and the prior.
+>- Probability of random samples is estimated given the data and the prior.
 >- Direction changes if probability of proposed estimate is lower than previous one.
->- Priors can be used to limit the parameter space (which is otherwise infinite) but are updated at every step.
 >- Parameter space is really multi-dimensional.
 
 </div>
@@ -475,9 +486,8 @@ pivot_wider(samples, names_from = name, values_from = value) %>%
 
 >- **Hamiltonian Monte Carlo:** Markov chain Monte Carlo method for obtaining random samples.
 >- Converge to being distributed according to a target probability distribution.
->- Probability of values proposed by the sampler is estimated given the data and the prior.
+>- Probability of random samples is estimated given the data and the prior.
 >- Direction changes if probability of proposed estimate is lower than previous one.
->- Priors can be used to limit the parameter space (which is otherwise infinite) but are updated at every step.
 >- Parameter space is really multi-dimensional.
 
 </div>
@@ -605,41 +615,32 @@ samples %>%
 
 ## Exercise: model diagnostics
 
-- $\hat{R}$ (*R*-hat) convergence statistic; should be $<1.1$ [@gelman1992]
-
-```{r eval = F, echo = T}
-rhat(fit_brm, pars = c("b_Intercept", "b_conditionb")) 
-```
-
-- Traceplots: we want fat hairy caterpillars 
+>- Traceplots: we want fat hairy caterpillars 
 
 ```{r eval = F, echo = T}
 plot(fit_brm, pars = c("b_Intercept", "b_conditionb"))
 ```
 
-- Posterior predictive checks: compare observed data $y$ and model predictions $y_{rep}$
+
+>- $\hat{R}$ convergence statistic; should be $<1.1$ [@gelman1992]
+
+```{r eval = F, echo = T}
+rhat(fit_brm, pars = c("b_Intercept", "b_conditionb")) 
+```
+
+>- Posterior predictive checks: compare observed data $y$ and model predictions $y_{rep}$
 
 ```{r eval=F, echo = T}
 pp_check(fit_brm, nsamples = 100)
 ```
 
-
 >- Replace the `---`s in scripts `model_diagnostics.R` and run the code (line by line).
 
 
 
-```{r}
-## Posterior: parameter estimates
-#stanplot(fit_brm, pars = "^b_")
-## Posterior: conditional effects
-#conditional_effects(fit_brm)
-```
 
 
-
-
-
-# Posterior probability distribution
+# Posterior probability distribution | see e.g. @nicenboim2016statistical for a tutorial
 
 
 ## Posterior probability distribution
@@ -664,13 +665,16 @@ beta[1:5]
 
 ## Posterior probability distribution
 
-```{r } 
+
+<div style="float: right;width: 55%">
+
+```{r fig.height=4.5, fig.width=5.5}
 ggplot(data = NULL, aes(x = beta)) +
   geom_histogram(alpha = .55) +
-  labs(x = bquote("Estimated effect"~hat(beta)),
-       title = "Posterior probability distribution")
+  labs(x = bquote("Estimated effect"~hat(beta)))
 ```
 
+</div>
 
 ## Posterior probability distribution
 
@@ -684,12 +688,12 @@ mean(beta)
 
 </div>
 
-<div style="float: left;width: 55%">
+<div style="float: right;width: 55%">
 
 ```{r fig.height=4.5, fig.width=5.5}
 ggplot(data = NULL, aes(x = beta)) +
   geom_histogram(alpha = .55) +
-  labs(x = bquote("Estimated effect"~hat(beta)), title = "Posterior probability distribution") +
+  labs(x = bquote("Estimated effect"~hat(beta))) +
   geom_vline(xintercept = mean(beta), color = "darkred")
 ```
 </div>
@@ -705,20 +709,15 @@ ggplot(data = NULL, aes(x = beta)) +
 quantile(beta, probs = c(0.025, 0.975))
 ```
 
->- 89% probability interval [@mcelreath2016statistical]
-
-```{r echo = T}
-quantile(beta, probs = c(0.055, 0.945))
-```
 
 </div>
 
-<div style="float: left;width: 55%">
+<div style="float: right;width: 55%">
 
 ```{r fig.height=4.5, fig.width=5.5}
 ggplot(data = NULL, aes(x = beta)) +
   geom_histogram(alpha = .55) +
-  labs(x = bquote("Estimated effect"~hat(beta)), title = "Posterior probability distribution") +
+  labs(x = bquote("Estimated effect"~hat(beta))) +
   geom_errorbarh(aes(y = 65, xmin = quantile(beta, probs = c(0.025))
 , xmax =  quantile(beta, probs = c(0.975))), color = "darkred", size = 1.5, ) +
   annotate("text", x = 15, y = 90, label = "95% PI", colour = "darkred")
@@ -743,12 +742,12 @@ quantile(beta, probs = c(0.055, 0.945))
 
 </div>
 
-<div style="float: left;width: 55%">
+<div style="float: right;width: 55%">
 
 ```{r fig.height=4.5, fig.width=5.5}
 ggplot(data = NULL, aes(x = beta)) +
   geom_histogram(alpha = .55) +
-  labs(x = bquote("Estimated effect"~hat(beta)), title = "Posterior probability distribution") +
+  labs(x = bquote("Estimated effect"~hat(beta))) +
   geom_errorbarh(aes(y = 65, xmin = quantile(beta, probs = c(0.055))
 , xmax =  quantile(beta, probs = c(0.945))), color = "darkred", size = 1.5, ) +
   annotate("text", x = 15, y = 90, label = "89% PI", colour = "darkred")
@@ -766,15 +765,10 @@ ggplot(data = NULL, aes(x = beta)) +
 mean(beta < 0)
 ```
 
->- Probability that slope $\beta$ is smaller than 10: $P(\hat{\beta}<10)$
-
-```{r echo = T}
-mean(beta < 10)
-```
 
 </div>
 
-<div style="float: left;width: 55%">
+<div style="float: right;width: 55%">
 
 ```{r fig.height=4.5, fig.width=5.5}
 beta2 <- beta[beta < 0]
@@ -782,7 +776,7 @@ ggplot(data = NULL, aes(x = beta, fill = beta > -1)) +
   geom_histogram(alpha = .55, position = "identity", show.legend = F) +
   scale_fill_manual(values = c("darkred", "grey")) +
   geom_vline(xintercept = 0, colour = "grey20", linetype = "dotted") +
-  labs(x = bquote("Estimated effect"~hat(beta)), title = "Posterior probability distribution") 
+  labs(x = bquote("Estimated effect"~hat(beta))) 
 ```
 </div>
 
@@ -803,25 +797,21 @@ mean(beta < 0)
 mean(beta < 10)
 ```
 
+>- More in the exercises: `parameter_evaluation.R`
+
 </div>
 
-<div style="float: left;width: 55%">
+<div style="float: right;width: 55%">
 
 ```{r fig.height=4.5, fig.width=5.5}
 ggplot(data = NULL, aes(x = beta, fill = beta > 9.5)) +
   geom_histogram(alpha = .55,  position = "identity", show.legend = F) +
   geom_vline(xintercept = 10, colour = "grey20", linetype = "dotted") +
   scale_fill_manual(values = c("darkred", "grey")) +
-  labs(x = bquote("Estimated effect"~hat(beta)), title = "Posterior probability distribution") 
+  labs(x = bquote("Estimated effect"~hat(beta))) 
 ```
 </div>
 
-
-## Exercise: parameter evaluation
-
->- Open the script `parameter_evaluation.R`
->- Work through each line of code: complete the missing bits (`---`). 
->- Check out the output.
 
 
 # What are priors? | chapter 7 in @lee2014bayesian
@@ -833,9 +823,9 @@ $$
 \text{posterior} \propto \text{prior} \cdot \text{likelihood}
 $$
 
-- Help parameter estimation by limiting the parameter space.
-- Prior knowledge about plausible parameter values: where does the sampler has to search for the target distribution.
+- Prior knowledge about plausible parameter values.
 - This knowledge is expressed as probability distributions (e.g. normal distributions).
+- Help probabilistic sampler by limiting the parameter space.
 - Small data samples are sensitive to prior information which makes intuitively sense.
 - Otherwise data typically overcome the prior (automatic Ockham's razor).
 - Less common: test data against a (prior) effect suggested by the literature.
@@ -847,7 +837,6 @@ $$
 <div style="float: left;width: 40%;">
 
 - *A priori*, each value in the parameter space is equally possible. 
-- We want to help our sampler by constraining the parameter space!
 - Let's think about the parameter space for models of keystroke data.
 
 </div>
@@ -866,9 +855,9 @@ tibble(intercept = runif(1000, -100000, 100000),
 
 <div style="float: left;width: 40%;">
 
->- Intercepts are some form of average (depending on contrast coding).
+>- Intercepts are some form of average.
 >- Can keystroke intervals range between -$\infty$ and $\infty$? 
-- What the lower and upper end?
+- What are the lower and upper end?
 
 </div>
 
@@ -888,9 +877,9 @@ tibble(intercept = runif(1000, -100000, 100000),
 
 <div style="float: left;width: 40%;">
 
->- Intercepts are some form of average (depending on contrast coding).
+>- Intercepts are some form of average.
 >- Can keystroke intervals range between -$\infty$ and $\infty$? 
->- What the lower and upper end?
+>- What are the lower and upper end?
 - How long is the average pause before a sentence?
 
 
@@ -918,15 +907,16 @@ tibble(intercept = runif(1000, 0, 10000),
 
 <div style="float: left;width: 40%;">
 
->- Intercepts are some form of average (depending on contrast coding).
+>- Intercepts are some form of average.
 >- Can keystroke intervals range between -$\infty$ and $\infty$? 
->- What the lower and upper end?
+>- What are the lower and upper end?
 - How long is the average pause before a sentence?
 
 
 $$
 \text{pre-sentence pause} \sim N(1000 \text{ msecs}, ???)
 $$
+
 </div>
 
 
@@ -948,9 +938,9 @@ tibble(intercept = runif(1000, 0, 10000),
 
 <div style="float: left;width: 40%;">
 
->- Intercepts are some form of average (depending on contrast coding).
+>- Intercepts are some form of average.
 >- Can keystroke intervals range between -$\infty$ and $\infty$? 
->- What the lower and upper end?
+>- What are the lower and upper end?
 - How long is the average pause before a sentence?
 - How short / long can this be?
 - Plausible probability distribution for pre-sentence pauses:
@@ -977,9 +967,9 @@ tibble(intercept = runif(1000, 0, 10000),
 
 <div style="float: left;width: 40%;">
 
->- Intercepts are some form of average (depending on contrast coding).
+>- Intercepts are some form of average.
 >- Can keystroke intervals range between -$\infty$ and $\infty$? 
->- What the lower and upper end?
+>- What are the lower and upper end?
 - How long is the average pause before a sentence?
 - How short / long can this be?
 - Plausible probability distribution for pre-sentence pauses:
@@ -1008,9 +998,9 @@ tibble(intercept = runif(1000, 0, 10000),
 
 <div style="float: left;width: 40%;">
 
->- Intercepts are some form of average (depending on contrast coding).
+>- Intercepts are some form of average.
 >- Can keystroke intervals range between -$\infty$ and $\infty$? 
->- What the lower and upper end?
+>- What are the lower and upper end?
 >- How long is the average pause before a sentence?
 >- How short / long can this be?
 - Plausible probability distribution for pre-sentence pauses:
@@ -1020,9 +1010,6 @@ $$
 \text{pre-sentence pause} \sim N(1000 \text{ msecs}, 500\text{ msecs})
 $$
 </div>
-
-
-
 
 
 <div style="float: right;width: 50%;">
@@ -1183,11 +1170,10 @@ ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "both")
 
 <div style="float: left;width: 50%;">
 
-- We often don't know what the slope might be or can't make strong predictions about the effects.
-- In fact, this might be why we run a statistical model.
-- However, we still have an intuition what is plausible and what isn't.
-- Say, words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
-- We are not sure, so let's use a mean of 0 msecs; what would be a possible $\sigma$?
+- We often don't know what the effect could be.
+- However, we have an intuition about what's plausible and what isn't.
+- E.g., words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
+- We are not sure, so let's use a mean of 0 msecs; what would be a possible SD?
 
 </div>
 
@@ -1213,11 +1199,10 @@ ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "x")
 
 <div style="float: left;width: 50%;">
 
->- We often don't know what the slope might be or can't make strong predictions about the effects.
->- In fact, this might be why we run a statistical model.
->- However, we still have an intuition what is plausible and what isn't.
->- Say, words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
-- We are not sure, so let's use a mean of 0 msecs; what would be a possible sd?
+>- We often don't know what the effect could be.
+>- However, we have an intuition about what's plausible and what isn't.
+>- E.g., words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
+>- We are not sure, so let's use a mean of 0 msecs; what would be a possible SD?
 
 $$
 \text{slope} \sim N(0 \text{ msecs}, ???)
@@ -1249,17 +1234,17 @@ ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "x")
 
 <div style="float: left;width: 50%;">
 
->- We often don't know what the slope might be or can't make strong predictions about the effects.
->- In fact, this might be why we run a statistical model.
->- However, we still have an intuition what is plausible and what isn't.
->- Say, words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
-- We are not sure, so let's use a mean of 0 msecs; what would be a possible sd?
+>- We often don't know what the effect could be.
+>- However, we have an intuition about what's plausible and what isn't.
+>- E.g., words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
+>- We are not sure, so let's use a mean of 0 msecs; what would be a possible SD?
+
 
 $$
 \text{slope} \sim N(0 \text{ msecs}, 100\text{ msecs})
 $$
 
->- We could even truncate the prior if we believe that the value must be smaller / larger than a certain value.
+>- We could even truncate the prior according to a lower / upper threshold.
 
 </div>
 
@@ -1286,18 +1271,17 @@ ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "x")
 
 <div style="float: left;width: 50%;">
 
->- We often don't know what the slope might be or can't make strong predictions about the effects.
->- In fact, this might be why we run a statistical model.
->- However, we still have an intuition what is plausible and what isn't.
->- Say, words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
->- We are not sure, so let's use a mean of 0 msecs; what would be a possible sd?
+>- We often don't know what the effect could be.
+>- However, we have an intuition about what's plausible and what isn't.
+>- E.g., words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
+>- We are not sure, so let's use a mean of 0 msecs; what would be a possible SD?
 
 
 $$
 \text{slope} \sim N(0 \text{ msecs}, 100\text{ msecs})
 $$
 
->- We could even truncate the prior if we believe that the value must be smaller / larger than a certain value.
+>- We could even truncate the prior according to a lower / upper threshold.
 
 
 </div>
@@ -1328,7 +1312,7 @@ ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "both")
 
 >- Even **weakly informative** priors are helpful for estimating parameter values.
 >- They help to constrain the parameter space.
->- The parameter space should reflect what we think is plausible.
+>- The parameter space should reflect our beliefs.
 >- This is important for more complex models (mixtures, Wiener diffusion models).
 
 </div>
@@ -1355,7 +1339,7 @@ ggExtra::ggMarginal(p, type="density", size=10, alpha = .25, margins = "both")
 
 ## Priors
 
-> Check defaults used last session:
+> Check defaults used earlier:
 
 \
 
@@ -1572,11 +1556,11 @@ all_dists %>%
 
 > - We will compare different models of keystroke intervals (same data; 5 different probability models).
 > - Run the following models and save their posterior:
- 1. `gaussian_sentence.R`
- 2. `lognormal_sentence.R`
- 3. `exgaussian_sentence.R`
- 4. `mixture_model_sentence.R`
- 5. `skewnormal_sentence.R` (spoiler: don't run this one, if you don't have time)
+ 1. `gaussian.R`
+ 2. `lognormal.R`
+ 3. `exgaussian.R`
+ 4. `mixturemodel.R`
+ 5. `skewnormal.R` (spoiler: don't run this one, if you don't have time)
 > - We need their posteriors for the next session.
 > - Don't start this last minute :)
 

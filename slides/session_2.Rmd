@@ -1098,7 +1098,7 @@ mc$diff %>%
 ## Mixture-model evaluation
 
 >- Summarise the parameter estimates of the mixture model.
->- Complete the `---`s in `mixture_model_sentence_posterior.R` and run the script.
+>- Complete the `---`s in `mixturemodel_posterior.R` and run the script.
 >- Try to make sense of the parameter estimates.
 
 
