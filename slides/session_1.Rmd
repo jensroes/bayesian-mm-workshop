@@ -54,165 +54,27 @@ theme_set(theme_few(base_size = 12) )
 
 ## Outline
 
->- Why Bayesian and difference to (classical) frequentist approaches
 >- Fit a Bayesian mixed effects model (diving in the deep end)
->- Convergence diagnostics 
->- Evaluating the posterior parameter 
+>- Why Bayesian and difference to (classical) frequentist approaches
+>- Convergence and model diagnostics 
+>- Evaluating the posterior
 >- What are priors? (shouldn't this be the first item)
 >- There will be exercises!!! (yay)
 
 
-# Why go Bayesian? | see @kruschke2014doing. Full disclosure: I'm biased! 
-
-
-## Two universes
-
->- Two different ways to generalise from a sample to the population: what do the data tell us about the population?
->- **Null-hypothesis significance testing (NHST)**: should we believe in the data if we assume that there's actually no effect?
->- **Bayesian statistics**: what's the probability of an effect given the data (and what we know from existing research)?
-
-
-## Null-hypothesis significance testing (NHST)
-
-$$
-p(\text{data} \mid H_0 = \text{TRUE})
-$$
-
->- Classical / frequentist statistics; *p*-value based statistics
->- Evaluating the probability of data assuming that the null hypothesis $H_0$ is true.
->- If the data are extreme enough, $H_0$ is concluded to be implausible (rejected).
->- If $H_0$ is implausible, $H_1$ (alternative hypothesis) is assumed.
-
-
-## NHST and its problems {.columns-2}
-
-- Intuitively, statistical significance is not binary but continuous.
-- How often are we actually interested in or seriously believe in $H_0$?
-- What are you doing if $p=0.051$? 
-- Stopping rule
-- $\alpha$-level of 0.05 implies that 5% of (imaginary) replications will:
-    - detect an effect that isn't real 
-    - do not detect and effect that is real
-    - reality seems even worse [@amrhein2019inferential;@loken2017measurement]
-
-\
-
-- Trade-off of effect size and sample size: 
-  - Smaller effects can become significant when the sample is large enough.
-  - But how plausible is a small (e.g. mean difference, correlation) for what we are interested in?
-  - What really matters is that the size of the effect is what we would expect.
-  - and finding the right model of the data.
-- Systematic misinterpretations of *p*-values [@colquhoun2017reproducibility; @greenland2016statistical] and CIs [@hoekstra2014robust; @morey2016fallacy].
-
-
-
-## Convergence failure for `lmer` models | `outcome ~ condition + (condition|participant) + (condition|item)` {.columns-2}
-
-
-- Maximal random effects structure [@baayen2008mixed; @barr2013random]
-- Overparametrisation: unidentifiable parameter estimates [@bates2015parsimonious]
-- Solutions: reducing model complexity, changing optimizers
-
-\
-
-- Model selection based on failure to fit a more complex one.
-- Some sources of random errors will not be addressed.
-- Bayesian model converge *by definition* (as the number of iterations approaches $\infty$).
-
-
-
-## Why is Bayes important for linguistis (and everyone else)?
-
-> It tells us what we want to know!
-
-\
-
-> Given the data (and our prior knowledge).
-
-\
-
-> - It's often very similar to what people *think* frequentist quantities mean [@nicenboim2016statistical].
-> - What interval contains an unobserved parameter with .95 (or some other) probability?
-> - What's the relative weight of evidence for one model (e.g., $H_0$) vs. another (e.g., $H_1$)?
-
-
-## Why is Bayes important for linguistis (and everyone else)?
-
-> Instead of 
-
-\
-
-$$
-p(\text{data} \mid H_0 = \text{TRUE})
-$$
-
-> we can 
-
-\
-
-$$
-p(H \mid \text{data})
-$$
-
-
-
-## Why is Bayes important for linguistis (and everyone else)?
-
->- Useful for small data sets for which prior information might play a huge role.
->- Probabilisitic sampling can handle: missing data problems, complex models (many parameters, sources of random error), ceiling / floor effects, identifyability issues.
->- Results are not dependent on sampling plan [@kruschke2018rejecting].
->- Flexible data modeling is **now** easily available (`brms`, `rstanarm`, `rethinking`).
-
-
-
-## Why is Bayes important for linguistis (and everyone else)?
-
-- Estimate credibility over parameter values based on the observed data [@kruschke2014doing].
-- Given the data, what parameter values should we believe in with most confidence.
-- For this we need to start with
-1. a probability model (e.g. a normal distribution)
-2. *prior* expectations (on e.g. means, difference, variability)
-
-
-
-## Bayes' Theorem 
-
-$$
-p(\theta \mid y) \propto p(\theta) \cdot p(y \mid \theta)
-$$
-
->- $\theta$ = parameter(s), $y$ = data, $\mid$ = given (conditional on), $\propto$ = proportional to
->- $p(y \mid \theta)$ = likelihood (probability of each data point given parameter value estimates)
->- $p(\theta)$ = prior (what do we know about the parameter(s))
->- $p(\theta \mid y)$ = posterior distribution (our believe in different parameter values after seeing the data)
-
-
-
-![](pics/bayes.jpeg)
-
-
-## Bayes' Theorem 
-
-$$
-p(\theta \mid y) \propto p(\theta) \cdot p(y \mid \theta)
-$$
-
->- Bayes' Theorem allows us to determine probability distributions of parameter values.
->- In maximum likelihood estimation we search for the parameters that maximize the log-likelihood.
->- Bayesian estimation uses the likelihood to update existing beliefs in different parameter values.
->- How much we believe in different parameter values depends on the data and what we already know.
->- We update our beliefs as new information becomes available.
-
 
 # Fitting a model in `brms` | [@brms1; @brms2; @burkner2019ordinal; @burkner2019bayesian]
 
-## `brms`
+## `brms` {.columns-2}
 
 - *R* package for Bayesian models
 - (Almost) no more complicated to fit than `lme4`s.
 - More probability models than other regressions packages:
   - `gaussian`, `lognormal`, `bernoulli`, `poisson`, `zero_inflated_poisson`, `skew_normal`, `shifted_lognormal`, `exgaussian`, *et cetera*
   - and allows mixture models, nonlinear syntax, (un)equal variance signal-detection theory, multivariate models
+  
+\
+  
 - Under the hood: `brms` creates Stan code to compile a probabilistic MCMC (Markov Chain Monte Carlo) sampler.
 - Compiling the sampler and for the sampler to obtain the full posterior can take times.
 
@@ -261,8 +123,7 @@ ggplot(data, aes(x = condition, y = y)) +
 <div style="float: left;width: 25%">
 > - You will use the same "data" in the exercises.
 > - Think about it as keystroke intervals :)
-> - Parameter of interest: difference between conditions (slope).
-> - Mixed-effects model combine fixed and random effects.
+> - We want to *uncover* the slope of 15 (difference between conditions) from the data.
 > - After accounting for variability associated with the sampling process.
 
 </div>
@@ -297,19 +158,19 @@ ggplot(data_sum, aes(x = condition, y = mean, colour = diff)) +
 
 
 
-## Formulating the probability model
+## Formulating the model
 
 $$
 y_i \sim N(\mu_i, \sigma^2)\\
 \mu_i = \beta_0 + \text{condition}_i\cdot\beta_1 + \text{participant}_i\\
 $$
 
-- Outcome variable $y$
-- Tilde symbol ($\sim$): "is distributed according to"
-- Equal sign ($=$): deterministic relationship
-- $N$: normal distribution with a mean $\mu$ and a residual (error) variance $\sigma^2$
-- Subscript $i$: every observation in $1 \dots N$.
-- Greek symbols: unknown population parameter values (caret indicates estimated, e.g. $\hat{\beta}$)
+>- Outcome variable $y$
+>- $N$: normal distribution with a mean $\mu$ and a residual (error) variance $\sigma^2$
+>- Tilde symbol ($\sim$): "is distributed according to"
+>- Equal sign ($=$): deterministic relationship
+>- Subscript $i$: every observation in $1 \dots N$.
+>- Greek symbols: unknown population parameter values (caret indicates estimated, e.g. $\hat{\beta}$)
 
 
 ## Formulating the model
@@ -402,7 +263,182 @@ fixef(fit_brm) # Coefficients of Bayesian model
 </div>
 
 
-# Convergence diagnostics | see @lambert2018student for HMC
+
+
+# Why go Bayesian? | see @kruschke2014doing. Full disclosure: I'm biased! 
+
+
+## Two universes
+
+>- Two different ways of generalising from sample to the population: 
+>- What do the data tell us about the population?
+>- **Null-hypothesis significance testing (NHST)**
+>- **Bayesian**
+
+
+## Null-hypothesis significance testing (NHST)
+
+
+>- Classical / frequentist statistics; *p*-value based statistics
+>- *p*-value: How plausible are the data (or something more extreme) if we assume that there's no effect?
+>- Evaluating the probability of data (e.g. *t*-value, *F*-statistic) assuming that the null hypothesis $H_0$ is true.
+>- If the data are extreme enough, $H_0$ is concluded to be implausible (rejected).
+>- If $H_0$ is implausible, we assume $H_1$ (alternative hypothesis).
+>- *Statistically significant* means data are unexpected under $H_0$.
+
+$$
+p(\text{data} \mid H_0 = \text{TRUE})
+$$
+
+
+## NHST and its problems {.columns-2}
+
+- Statistical significance is not binary but continuous.
+- How often are we actually interested in or seriously believe in $H_0$?
+- What are you doing if $p=0.051$? 
+- Stopping rule
+- $\alpha$-level of 0.05 implies that there is a 5% chance that:
+    - our effect doesn't replicate (isn't real) 
+    - we will not observe an effect that is real
+- This seems even worse in reality [@amrhein2019inferential;@loken2017measurement]
+
+\
+
+- Trade-off of statistical significance, effect size, and sample size: 
+  - Smaller effects can become significant when the sample is large enough.
+  - But how plausible is a small effect (e.g. mean difference, correlation) for what we are interested in?
+  - What really matters is that the size of the effect is what we would expect it to be.
+- Systematic misinterpretations of *p*-values [@colquhoun2017reproducibility; @greenland2016statistical] and CIs [@hoekstra2014robust; @morey2016fallacy].
+
+
+
+## Convergence failure for `lmer` models 
+
+\
+
+`outcome ~ condition + (condition|participant) + (condition|item)` 
+
+\
+
+## Convergence failure for `lmer` models {.columns-2}
+
+>- The statistical model should be an appropriate representation of the process that generates our data.
+- Maximal random effects structure [@baayen2008mixed; @barr2013random]
+- Overparametrisation: unidentifiable parameter estimates [@bates2015parsimonious]
+
+\
+
+- Solutions: reducing model complexity, changing optimizers
+- Model selection based on failure to fit a more complex one.
+- Some sources of random errors will not be addressed.
+- Bayesian model converge *by definition* (as the number of iterations approaches $\infty$).
+
+
+
+## Bayes' Theorem 
+
+- Should I bring my umbrella? 
+- I live in Nottingham: 122.1 rainy days per year
+- I live in Los Angeles: 35.0 rainy days per year
+- Forecast says 50% rain.
+- My window says it's raining.
+- Bayesian inference means updating one's belief about something as the new information becomes available.
+- Bayesian inference is about uncertainty in belief in parameter values (e.g. a difference between means) and doesn't rely on fixed constants (e.g. *p*-values < 0.05).
+
+
+
+## Bayes' Theorem 
+
+$$
+p(\theta \mid y) \propto p(\theta) \cdot p(y \mid \theta)
+$$
+
+>- $\theta$ = parameter(s), $y$ = data, $\mid$ = given (conditional on), $\propto$ = proportional to
+>- $p(y \mid \theta)$ = likelihood (probability of data given model parameter values)
+>- $p(\theta)$ = prior (what do we know about model parameter(s))
+>- $p(\theta \mid y)$ = posterior distribution (our believe in different parameter values after seeing the data)
+
+
+
+![](pics/bayes.jpeg)
+
+
+## Bayes' Theorem 
+
+$$
+p(\theta \mid y) \propto p(\theta) \cdot p(y \mid \theta)
+$$
+
+>- Bayes' Theorem allows us to determine probability / uncertainty distributions of parameter values.
+>- Frequentist models: maximum likelihood estimation we search for the parameters that maximize the log-likelihood.
+>- Bayesian estimation uses the likelihood to update existing beliefs in different parameter values.
+>- How much we believe in different parameter values depends on the data and what we already know.
+>- We update our beliefs as new information becomes available.
+
+
+
+## Why is Bayes important for linguistis (and everyone else)?
+
+> It tells us what we want to know!
+
+\
+
+> Given the data (and our prior knowledge).
+
+\
+
+> - Summary stats of a Bayesian model are often very similar to what people *think* frequentist quantities (*p*-values, CIs) mean [@nicenboim2016statistical]:
+> - What's the relative weight of evidence for one model (e.g., $H_0$) vs. another (e.g., $H_1$)?
+> - What interval contains an unknown parameter value with .95 probability?
+
+
+## Why is Bayes important for linguistis (and everyone else)?
+
+> Instead of 
+
+\
+
+$$
+p(\text{data} \mid H_0 = \text{TRUE})
+$$
+
+> we can 
+
+\
+
+$$
+p(H \mid \text{data})
+$$
+
+
+
+## Why is Bayes important for linguistis (and everyone else)?
+
+>- What's the probability of an effect given the data (and what we know)?
+>- Useful for small data sets for which what we already know (prior information) plays a huge role.
+>- Probabilisitic sampling can handle: convergence failures, missing data problems, complex models (many parameters, sources of random error), ceiling / floor effects, identifyability issues.
+>- Results are not dependent on sampling plan [@kruschke2018rejecting].
+>- Flexible data modeling is **now** easily available (`brms`, `rstanarm`, `rethinking`).
+
+
+
+## Why is Bayes important for linguistis (and everyone else)?
+
+>- Estimate credibility over parameter values based on the observed data [@kruschke2014doing].
+>- Given the data, what parameter values should we believe in with most confidence.
+>- For this we need to start with
+1. a probability model (e.g. a normal distribution)
+2. *prior* expectations (on e.g. means, difference, variability)
+>- `brms` uses probabilistic sampling to determine the posterior uncertainty about the parameter value of the probability model given the prior and the data.
+>- This involve calculating the weighted probability of the data given some parameter values (which can take time).
+
+
+
+
+
+
+
+# Convergence and model diagnostics | see @lambert2018student for HMC
 
 
 ## So what about this?
