@@ -1,0 +1,1067 @@
+---
+title: "Bayesian mixed models with brms | session 2"
+author: Jens Roeser 
+date: 'Last updated: `r Sys.Date()`'
+output: 
+  ioslides_presentation:
+#  revealjs::revealjs_presentation:
+    theme: simplex
+    highlight: zenburn
+    incremental: true
+    transition: slower
+    widescreen: true
+    smaller: true
+
+bibliography: ["references.bib"]
+csl: apa.csl
+link-citations: no
+
+---
+
+```{r setup, include=FALSE}
+library(citr)
+library(tidyverse)
+library(magrittr)
+library(lme4)
+library(brms)
+library(ggthemes)
+library(kableExtra)
+library(knitr)
+library(readxl)
+library(extrafont)
+library(broom)
+library(tidybayes)
+library(janitor)
+library(patchwork)
+library(mixtools)
+source("../scripts/functions.R")
+options("kableExtra.html.bsTable" = T)
+knitr::opts_chunk$set(echo = FALSE,
+                      comment=NA, 
+                      warning = FALSE,
+                      message =FALSE)
+theme_set(theme_few(base_size = 13))
+brms_sim <- readRDS("../stanout/brms_sim_sample_prior.rda")
+```
+
+
+
+## Outline
+
+>- Last session
+>- Evaluating the posterior 
+>- What are priors?
+>- Models of keystroke data
+>- Model comparisons
+>- Mixture model evaluation
+>- Summary and recommended reading
+>- Bonus: Bayes factor
+
+
+# Last session
+
+## Fit models on simulated data
+
+<div style="float: left;width: 75%; height:50%">
+
+```{r, eval = T, echo = T}
+data <- jens_data_machine(intercept = 300, slope = 15)
+```
+
+```{r}
+fit_brm <- readRDS(file = "../stanout/brms_sim.rda")
+```
+
+```{r, eval = F, echo = T}
+fit_brm <- brm(y ~ 1 + condition + (1|participant_id), data = data)
+```
+
+```{r, eval = F, echo = T}
+fixef(fit_brm)
+```
+
+```{r, eval = T, echo = F}
+fixef(fit_brm) %>% round(1)
+```
+
+
+## Model convergence
+
+```{r eval = T, echo = T, fig.height=3.5}
+plot(fit_brm, pars = c("b_Intercept", "b_conditionb"))
+```
+
+
+## Model convergence
+
+$\hat{R}$ convergence statistic; should be $<1.1$ [@gelman1992]
+
+```{r eval = T, echo = T}
+rhat(fit_brm, pars = c("b_Intercept", "b_conditionb")) %>% round(3)
+```
+
+## Posterior predictive checks
+
+Compare observed data $y$ and model predictions $y_{rep}$
+
+```{r eval=T, echo = T, fig.height=3.5}
+pp_check(fit_brm, nsamples = 100)
+```
+
+
+
+
+# Evaluating the posterior | see e.g. @nicenboim2016statistical for a tutorial
+
+
+## Evaluating the posterior 
+
+
+>- Get posterior of slope $\beta$ (difference between conditions)
+
+```{r echo = T}
+beta <- posterior_samples(fit_brm, pars = "b_conditionb") %>% pull()
+```
+
+
+```{r echo = T}
+length(beta)
+```
+
+
+```{r echo = T}
+beta[1:5]
+```
+
+
+## Evaluating the posterior 
+
+
+<div style="float: right;width: 55%">
+
+```{r fig.height=4.5, fig.width=5.5}
+ggplot(data = NULL, aes(x = beta)) +
+  geom_histogram(alpha = .55) +
+  labs(x = bquote("Estimated effect"~hat(beta)))
+```
+
+</div>
+
+## Evaluating the posterior 
+
+<div style="float: left;width: 45%">
+
+>- Posterior mean
+
+```{r echo = T}
+mean(beta)
+```
+
+</div>
+
+<div style="float: right;width: 55%">
+
+```{r fig.height=4.5, fig.width=5.5}
+ggplot(data = NULL, aes(x = beta)) +
+  geom_histogram(alpha = .55) +
+  labs(x = bquote("Estimated effect"~hat(beta))) +
+  geom_vline(xintercept = mean(beta), color = "darkred")
+```
+</div>
+
+
+## Evaluating the posterior 
+
+<div style="float: left;width: 45%">
+
+>- 95% probability interval 
+
+```{r echo = T}
+quantile(beta, probs = c(0.025, 0.975))
+```
+
+
+</div>
+
+<div style="float: right;width: 55%">
+
+```{r fig.height=4.5, fig.width=5.5}
+ggplot(data = NULL, aes(x = beta)) +
+  geom_histogram(alpha = .55) +
+  labs(x = bquote("Estimated effect"~hat(beta))) +
+  geom_errorbarh(aes(y = 65, xmin = quantile(beta, probs = c(0.025))
+, xmax =  quantile(beta, probs = c(0.975))), color = "darkred", size = 1.5, ) +
+  annotate("text", x = 15, y = 90, label = "95% PI", colour = "darkred")
+```
+</div>
+
+
+
+## Evaluating the posterior 
+
+<div style="float: left;width: 45%">
+
+>- Probability that slope $\beta$ is negative: $P(\hat{\beta}<0)$
+
+```{r echo = T}
+mean(beta < 0)
+```
+
+>- More in the exercises: `parameter_evaluation.R`
+>- Formal hypothesis test: `bayes_factors.html` slides (on github)
+
+
+</div>
+
+<div style="float: right;width: 55%">
+
+```{r fig.height=4.5, fig.width=5.5}
+beta2 <- beta[beta < 0]
+ggplot(data = NULL, aes(x = beta, fill = beta > -1)) +
+  geom_histogram(alpha = .55, position = "identity", show.legend = F) +
+  scale_fill_manual(values = c("darkred", "grey")) +
+  geom_vline(xintercept = 0, colour = "grey20", linetype = "dotted") +
+  labs(x = bquote("Estimated effect"~hat(beta))) 
+```
+</div>
+
+
+
+# What are priors? | chapter 7 in @lee2014bayesian
+
+
+## Priors
+
+>- Prior knowledge about plausible parameter values.
+>- This knowledge is expressed as probability distributions (e.g. normal distributions).
+>- Small data will not easily overcome our priors but large data will (automatic Ockham's razor).
+>- By default, each parameter value is equally possible (flat priors).
+>- Even **weakly informative** priors are helpful for estimating parameter values.
+
+
+
+## Priors: intercept
+
+>- Intercepts are some form of average.
+>- Can keystroke intervals range between -$\infty$ and $\infty$? 
+>- How long is the average pause before a sentence?
+>- Plausible probability distribution for pre-sentence pauses:
+
+
+## Priors: intercept
+
+>- Intercepts are some form of average.
+>- Can keystroke intervals range between -$\infty$ and $\infty$? 
+>- How long is the average pause before a sentence?
+>- Plausible probability distribution for pre-sentence pauses:
+
+
+$$
+\text{pre-sentence pause} \sim N(1000 \text{ msecs}, 500\text{ msecs})
+$$
+
+
+
+## Priors: slope
+
+
+>- We often don't know what the effect could be.
+>- However, we have an intuition about what's plausible and what isn't.
+>- E.g., words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
+>- We are not sure, so let's use a mean of 0 msecs; what would be a possible SD?
+
+
+## Priors: slope
+
+>- We often don't know what the effect could be.
+>- However, we have an intuition about what's plausible and what isn't.
+>- E.g., words with alternative spellings (*accordian*, *accordion*) may or may not lead to longer pauses (than words with less possible spellings; *aspergus*).
+>- We are not sure, so let's use a mean of 0 msecs; what would be a possible SD?
+
+
+$$
+\text{slope} \sim N(0 \text{ msecs}, 250\text{ msecs})
+$$
+
+
+
+## Priors
+
+> Check defaults used earlier:
+
+\
+
+```{r echo = T, eval = F}
+fit_brm <- readRDS(file = "../stanout/brms_sim.rda")
+prior_summary(fit_brm)
+```
+
+```{r echo = F, eval = T}
+fit_brm <- readRDS(file = "../stanout/brms_sim.rda")
+prior <- prior_summary(fit_brm) # %>% as_data_frame() %>% select(-source)
+sd_prior <- prior %>% filter(class == "sd" & group == "") %>% pull(prior)
+prior %>% as_tibble() %>%
+  mutate(prior = ifelse(class == "b", "(flat)", prior),
+         prior = ifelse(class == "sd", sd_prior, prior)) %>%
+  select(prior:group) %>% kable() %>%
+  kable_styling("striped", full_width = F) %>%
+  column_spec(1, width = "20em") %>%
+  column_spec(2:4, width = "10em") 
+```
+
+
+
+## Student *t*-distribution
+
+<div style="float: left;width: 35%;">
+
+>- Symmetric continuous distribution with fat tails assigning more probability to extreme values.
+>- $\nu$ parameter controls the degrees of freedom
+>- $\nu = 1$ is a flat 
+>- When $\nu \rightarrow \infty$ distribution becomes Gaussian.
+
+</div>
+
+
+<div style="float: right;width: 60%;">
+
+```{r fig.width=6}
+library(LaplacesDemon)
+
+x <- seq(-10, 10, by = 0.1)
+
+tibble("t0" = dnorm(x, mean=0, sd=1),
+       "t1" = dst(x, mu=0, sigma=1, nu = 1),
+       "t2" = dst(x, mu=0, sigma=1, nu = 5),
+#       "t3" = dst(x, mu=0, sigma=2, nu = 5),
+       x = x) %>%
+  pivot_longer(-x) %>%
+  ggplot(aes(x = x, y = value, colour = name)) +
+  geom_line() +
+  scale_x_continuous(limits = c(-7, 7)) +
+  scale_color_colorblind("Parameter values",
+                         breaks = paste0("t",0:2), 
+                         labels = c(bquote(mu==0*","~sigma==1),
+                                    bquote(mu==0*","~sigma==1*","~nu==1),
+                                    bquote(mu==0*","~sigma==1*","~nu==5)
+                                    #bquote(mu==0*","~sigma==2*","~nu==5)
+                                    )) +
+  labs(x = "x", y = "density") +
+  theme(legend.justification = "top") 
+
+```
+</div>
+
+
+
+## Prior specification: model
+
+
+> Instead of 
+
+\
+
+```{r echo = T, eval = F}
+fit <- brm(outcome ~ predictor + (1|participant), data = data)
+```
+
+\
+
+> do ...
+
+\
+
+
+```{r echo = T, eval = F}
+# Create model
+model <- bf(outcome ~ predictor + (1|participant))
+# specifying model formula outside of brms works for lmer too.
+# bf = brmsformula
+
+# Fit brms
+fit <- brm(model, data = data)
+```
+
+
+
+## Prior specification: prior
+
+
+```{r echo = T, eval = F}
+# Create model
+model <- bf(outcome ~ predictor + (1|participant))
+
+# Look at priors: some have reasonable defaults, others are flat.
+get_prior(model, data = data)
+
+# Specify priors
+prior <- set_prior("normal(1000, 500)", class = "Intercept", lb = 0, ub = 100000) +
+         set_prior("normal(0, 100)", class = "b") # for slope(s)
+
+# Fit brms
+fit <- brm(model, data = data, prior = prior)
+```
+
+>- Adding priors to last session's model `brms_sim_with_prior.R`; 
+>- Replace the `---`s according to the comments in the script.
+
+
+
+
+
+```{r echo=F}
+data <- read_csv("../data/sentence_transitions.csv") %>% 
+  select(SubNo, Lang, transition_type, IKI) %>%
+  filter(IKI > 50, IKI < 5000)
+```
+
+
+
+# Models of keystroke data
+
+## Models of keystroke data
+
+
+\
+
+>"Models are devices that connect theories to data.  A model is an instantiation of a theory [...]" [@rouder2016interplay p. 2] 
+
+\
+
+
+- Our models describe how we understand reality.
+- Model allows us to describe reality qualitatively (with their parameters) and quantitatively (parameter value estimates, e.g., mean keystroke interval).
+- At minimum, distribution families (probability models) depend on data type.
+- This isn't all; there are many distribution families for modeling continuous data.   
+
+
+## Probability models (some important ones)
+
+>- **Gaussian**: data come from normal distribution (last session)
+
+```{r eval=F, echo=T}
+model <- bf(outcome ~ predictor + (1|participant), family = gaussian())
+```
+
+
+## Probability models (some important ones)
+
+>- **Gaussian**: data come from normal distribution (last session)
+>- **Bernoulli**: binomial outcomes (yes / no; correct / incorrect)
+
+```{r eval=F, echo=T}
+model <- bf(outcome ~ predictor + (1|participant), family = bernoulli())
+```
+
+## Probability models (some important ones)
+
+>- **Gaussian**: data come from normal distribution (last session)
+>- **Bernoulli**: binomial outcomes (yes / no; correct / incorrect)
+>- **Poisson**: count data (number of words / mistakes)
+
+
+```{r eval=F, echo=T}
+model <- bf(outcome ~ predictor + (1|participant), family = poisson())
+```
+
+
+## Probability models (some important ones)
+
+>- **Gaussian**: data come from normal distribution (last session)
+>- **Bernoulli**: binomial outcomes (yes / no; correct / incorrect)
+>- **Poisson**: count data (number of words / mistakes)
+>- Families for ordinal (ordered) data [@burkner2019ordinal] (Likert scales)
+
+
+```{r eval=F, echo=T}
+model <- bf(outcome ~ predictor + (1|participant), family = cumulative())# or acat, sratio
+```
+
+
+## Models of keystroke data
+
+<div style="float: left;width: 45%;">
+
+>- Keystroke data from 39 ppts writing texts in L1 (English) or L2 (Spanish).
+>- Sentence transitions (keystroke interval between sentences).
+>- Keystroke interval data are heavily skewed.
+>- Skew is normal and contains important information.
+>- Long intervals represent additional cognitive demands.
+
+
+</div>
+
+
+<div style="float: right;width: 55%;">
+
+```{r fig.width=5.5}
+max <- 4500
+data %>% filter(IKI < max) %>%
+  mutate(Lang = recode(Lang, EN = "L1 (English)",
+                             ES = "L2 (Spanish)"),
+         transition_type = recode(transition_type, noedit = "no edit")) %>%
+  ggplot(aes(x = Lang, y = IKI)) +
+  geom_jitter(size = .1, width = .25, alpha = .35) +
+#  geom_boxplot(outlier.colour = NA, width = .25,  position = position_dodge(.75)) +
+  labs(colour = "Transition type", x = "Language", y = "IKI [in msecs]", caption = paste0("Trimmed at ", max, " msecs for visualisation")) 
+```
+</div>
+
+
+## Models of keystroke data {.columns-2}
+
+
+>- What is a good model of keystroke data?
+>- Many probability models that deal with skew explicitly: skewed Normal, shifted (log)-Normal, Wiener Diffusion models, ex-Gaussian etc. [see @matzke2009psychological].
+>- Describing the data generating process in different ways: entail different ways of thinking about skew.
+
+\
+
+>- Homework: 5 models of keystroke data 
+>- Intercept only with random ppt intercepts predicting interkeystroke intervals (IKI):
+
+
+\
+
+`IKI ~ 1 + (1|participant)`
+
+
+
+
+## Gaussian {.columns-2}
+
+$$y \sim N(\mu, \sigma^2)$$
+
+>- Values are symmetrically distributed with a mean $\mu$ and standard deviation $\sigma$.
+>- The underlying process that generates data has an equal chance of being slower or faster than the mean.
+
+
+```{r eval=F, echo=T}
+model <- bf(IKI ~ 1 + (1|SubNo), 
+            family = gaussian())
+gaussian <- brm(mode, data = data)
+```
+
+\
+
+```{r}
+gaussian <- readRDS("../stanout/gaussian_sentence.rda")
+```
+
+```{r echo = T}
+round(fixef(gaussian)[,-2])
+```
+
+```{r echo = T}
+round(mean(data$IKI))
+```
+
+
+
+## Gaussian
+
+
+
+```{r }
+data$log_iki <- log(data$IKI)
+ggplot(data, aes(x = IKI)) +
+  geom_histogram() +
+  labs(subtitle = "IKIs on msecs scale", x = "ikis") +
+  geom_vline(xintercept = 380, colour = "red") +
+  annotate("text", x = 750, y = 800, label = "Estimated\nmean")
+```
+
+
+## Log-Normal
+
+
+
+```{r }
+data$log_iki <- log(data$IKI)
+iki <- ggplot(data, aes(x = IKI)) +
+  geom_histogram() +
+  labs(subtitle = "IKIs on msecs scale", x = "ikis")
+log_iki <- ggplot(data, aes(x = log_iki)) +
+  geom_histogram() +
+  labs(subtitle = "IKIs on log-msecs scale", x = "log(ikis)")
+iki + log_iki
+```
+
+
+## Log-Normal {.columns-2}
+
+
+>- Often used to address positive skew; e.g. response times [@baa08book]
+>- De-emphasize large values over small values.
+>- Log-values are only defined if $y \in [0, \infty]$
+
+```{r}
+lognormal <- readRDS("../stanout/lognormal_sentence.rda")
+```
+
+```{r eval=F, echo=T}
+model <- bf(IKI ~ 1 + (1|SubNo), 
+            family = lognormal())
+lognormal <- brm(mode, data = data)
+```
+
+
+\
+
+```{r echo = T}
+round(exp(fixef(lognormal)[,-2]))
+```
+
+```{r echo = T}
+round(mean(data$IKI))
+```
+
+
+## Log-Normal
+
+```{r}
+ggplot(data, aes(x = IKI)) +
+  geom_histogram() +
+  labs(subtitle = "IKIs on log-msecs scale", x = "log(ikis)") +
+  geom_vline(xintercept = 232.69, colour = "red") +
+  annotate("text", x = 650, y = 800, label = "Estimated\nmean")
+```
+
+
+
+## Ex-Gaussian
+
+<div style="float: left;width: 55%;">
+>- Response is caused by a mix of two processes:
+>  1. Gaussian distribution
+>  2. Exponential distribution
+>- For keystroke data [@chukharev2014pauses]
+  
+- Parameters:
+  - $\mu$: mean of the Gaussian; shorter/longer mean keystroke intervals
+  - $\sigma$: standard deviation of the Gaussian; symmetrical variability around $\mu$
+  - $\tau$: decay rate of the exponential; the tail of long keystroke intervals (higher $\tau$ means more tail dominance over the Gaussian)
+</div>
+
+<div style="float: right;width: 45%;">
+![](pics/exgaus.png)
+</div>
+
+
+```{r}
+exGausDist <- function(nObs = 10000, mu = 300, sd = 30, tau = 200) {
+  round(rnorm(nObs, mu, sd) + rexp(nObs, 1 / tau))
+}
+
+exgaus <- tibble("t1" = exGausDist(tau = 50),
+       "t2" = exGausDist(tau = 100),
+       "t3" = exGausDist(tau = 250),
+       "t4" = exGausDist(tau = 500)) %>%
+  pivot_longer(everything())
+```
+
+## Ex-Gaussian
+
+```{r}
+exgaus %>% filter(name == "t1") %>%
+  ggplot(aes(x = value, colour = name)) +
+  geom_density(colour = "white") +
+  scale_x_continuous(limits = c(0, 1500)) +
+  scale_color_colorblind(breaks = paste0("t",1:4), labels = c(bquote(tau==50),bquote(tau==100),bquote(tau==250),bquote(tau==500))) +
+  labs(colour = "Exponential\nparameter\nvalue", subtitle = bquote("Gaussian parameter values:"~mu==300*","~sigma==30), x = "x") +
+  theme(legend.justification = "top")
+```
+
+## Ex-Gaussian
+
+```{r}
+exgaus %>% filter(name == "t1") %>%
+  ggplot(aes(x = value, colour = name)) +
+  geom_density() +
+  scale_x_continuous(limits = c(0, 1500)) +
+  scale_color_colorblind(breaks = paste0("t",1:4), labels = c(bquote(tau==50),bquote(tau==100),bquote(tau==250),bquote(tau==500))) +
+  labs(colour = "Exponential\nparameter\nvalue", subtitle = bquote("Gaussian parameter values:"~mu==300*","~sigma==30), x = "x") +
+  theme(legend.justification = "top")
+```
+
+## Ex-Gaussian
+
+```{r}
+exgaus %>% filter(name %in% paste0("t", 1:2)) %>%
+  ggplot(aes(x = value, colour = name)) +
+  geom_density() +
+  scale_x_continuous(limits = c(0, 1500)) +
+  scale_color_colorblind(breaks = paste0("t",1:4), labels = c(bquote(tau==50),bquote(tau==100),bquote(tau==250),bquote(tau==500))) +
+  labs(colour = "Exponential\nparameter\nvalue", subtitle = bquote("Gaussian parameter values:"~mu==300*","~sigma==30), x = "x") +
+  theme(legend.justification = "top")
+```
+
+## Ex-Gaussian
+
+```{r}
+exgaus %>% filter(name %in% paste0("t", 1:3)) %>%
+  ggplot(aes(x = value, colour = name)) +
+  geom_density() +
+  scale_x_continuous(limits = c(0, 1500)) +
+  scale_color_colorblind(breaks = paste0("t",1:4), labels = c(bquote(tau==50),bquote(tau==100),bquote(tau==250),bquote(tau==500))) +
+  labs(colour = "Exponential\nparameter\nvalue", subtitle = bquote("Gaussian parameter values:"~mu==300*","~sigma==30), x = "x") +
+  theme(legend.justification = "top")
+```
+
+## Ex-Gaussian
+
+```{r}
+exgaus %>% filter(name %in% paste0("t", 1:4)) %>%
+  ggplot(aes(x = value, colour = name)) +
+  geom_density() +
+  scale_x_continuous(limits = c(0, 1500)) +
+  scale_color_colorblind(breaks = paste0("t",1:4), labels = c(bquote(tau==50),bquote(tau==100),bquote(tau==250),bquote(tau==500))) +
+  labs(colour = "Exponential\nparameter\nvalue", subtitle = bquote("Gaussian parameter values:"~mu==300*","~sigma==30), x = "x") +
+  theme(legend.justification = "top")
+```
+
+
+## Ex-Gaussian
+
+```{r echo = T, eval = F}
+
+model <- bf(IKI ~ 1 + (1 | SubNo),  
+            beta ~ 1 + (1 | SubNo), # decay parameter (exponential component)
+            family = exgaussian())
+
+prior <- set_prior("normal(250, 20)", class = "Intercept") +
+         set_prior("normal(6, 2)", class = "Intercept", dpar = "beta") # decay rate in log msecs
+
+```
+
+
+
+## Skew-Normal
+
+>- Non-symmetric Gaussian with extra skew-parameter $\alpha$: 
+>- positive skew $\alpha > 0$
+>- negative skew $\alpha < 0$; 
+  
+  
+```{r fig.height=3}
+library(PearsonDS)
+
+skewrnorm <- function(x = seq(-10, 10, .1), mean = 0, variance = 5, skewness = 0, kurtosis = 3){
+  moments <- c(mean = mean, variance = variance, skewness = skewness, kurtosis = kurtosis)
+  x <- dpearson(x, moments = moments)
+  return(x)
+}
+
+tibble("t1" = skewrnorm(skewness = 0),
+       "t2" = skewrnorm(skewness = .8),
+       "t3" = skewrnorm(skewness = -.8),
+       x = seq(-10, 10, .1)) %>%
+  pivot_longer(-x) %>%
+  group_by(name) %>%
+  mutate(mean = mean(value),
+         median = mean(value)) %>%
+  ggplot(aes(x = x, y = value, colour = name)) +
+  geom_line() +
+  scale_x_continuous(limits = c(-10, 10)) +
+  scale_color_colorblind(breaks = paste0("t",1:3), labels = c("No skew", "Positive skew", "Negative skew")) +
+  labs(colour = "", subtitle = bquote("Gaussian parameter values:"~mu==0*","~sigma==5), x = "x", y = "density") +
+  theme(legend.justification = "top") +
+  geom_vline(xintercept = 0, linetype = "dotted") 
+
+
+```
+
+
+## Mixture model
+
+$$
+y \sim (1-\theta) \cdot N(\mu_1, \sigma_1) + \theta \cdot N(\mu_2, \sigma_2) 
+$$
+
+>- Finite mixture model with two distributions (mixture components)
+>- Keystroke intervals are a mix of two independent processes [@roeser2021]:
+>- Short keystroke intervals: normal execution
+>- Long keystroke intervals: cognitively demanding
+
+
+- Parameters:
+  - $\mu_1, \sigma_1$: mean and sd of one distribution
+  - $\mu_2, \sigma_2$: mean and sd of other distribution
+  - $\theta$: mixing proportion of distributions
+
+- Mixing proportion $\theta$ is probability of data coming from the second distribution.
+
+
+
+```{r}
+set.seed(100)
+MixModDist <- function(n = 10000, mu = c(350, 750), sigma = c(50, 50), lambda = c(.5, .5)) {
+  rnormmix(n = n, lambda = lambda, mu = mu, sigma = sigma)}
+
+mixmod <- tibble("t1" = MixModDist(),
+       "t2" = MixModDist(lambda = c(.6,.4)),
+       "t3" = MixModDist(lambda = c(.75,.25)),
+       "t4" = MixModDist(lambda = c(.95,.05))) %>%
+  pivot_longer(everything())
+
+```
+
+
+## Mixture model
+
+```{r}
+mixmod %>% filter(name %in% paste0("t",1)) %>%
+  ggplot(aes(x = value, colour = name)) +
+ geom_density(colour = "white") +
+ scale_x_continuous(limits = c(0, 1500)) +
+ scale_color_colorblind(breaks = paste0("t",1:4), labels = c(bquote(theta[2]==.5),bquote(theta[2]==.4),bquote(theta[2]==.25),bquote(theta[2]==.05))) +
+  labs(colour = "Mixing proportion\nparameter\nvalue", subtitle = bquote("Gaussian parameter values:"~mu[1]==350*","~mu[2]==750*","~sigma[1]==50*","~sigma[2]==50), x = "x") +
+  theme(legend.justification = "top")
+```
+
+## Mixture model
+
+```{r}
+mixmod %>% filter(name %in% paste0("t",1)) %>%
+  ggplot(aes(x = value, colour = name)) +
+ geom_density() +
+ scale_x_continuous(limits = c(0, 1500)) +
+ scale_color_colorblind(breaks = paste0("t",1:4), labels = c(bquote(theta[2]==.5),bquote(theta[2]==.4),bquote(theta[2]==.25),bquote(theta[2]==.05))) +
+  labs(colour = "Mixing proportion\nparameter\nvalue", subtitle = bquote("Gaussian parameter values:"~mu[1]==350*","~mu[2]==750*","~sigma[1]==50*","~sigma[2]==50), x = "x") +
+  theme(legend.justification = "top")
+```
+
+## Mixture model
+
+```{r}
+mixmod %>% filter(name %in% paste0("t",1:2)) %>%
+  ggplot(aes(x = value, colour = name)) +
+ geom_density() +
+ scale_x_continuous(limits = c(0, 1500)) +
+ scale_color_colorblind(breaks = paste0("t",1:4), labels = c(bquote(theta[2]==.5),bquote(theta[2]==.4),bquote(theta[2]==.25),bquote(theta[2]==.05))) +
+  labs(colour = "Mixing proportion\nparameter\nvalue", subtitle = bquote("Gaussian parameter values:"~mu[1]==350*","~mu[2]==750*","~sigma[1]==50*","~sigma[2]==50), x = "x") +
+  theme(legend.justification = "top")
+```
+
+
+## Mixture model
+
+```{r}
+mixmod %>% filter(name %in% paste0("t",1:3)) %>%
+  ggplot(aes(x = value, colour = name)) +
+ geom_density() +
+ scale_x_continuous(limits = c(0, 1500)) +
+ scale_color_colorblind(breaks = paste0("t",1:4), labels = c(bquote(theta[2]==.5),bquote(theta[2]==.4),bquote(theta[2]==.25),bquote(theta[2]==.05))) +
+  labs(colour = "Mixing proportion\nparameter\nvalue", subtitle = bquote("Gaussian parameter values:"~mu[1]==350*","~mu[2]==750*","~sigma[1]==50*","~sigma[2]==50), x = "x") +
+  theme(legend.justification = "top")
+```
+
+
+## Mixture model
+
+
+```{r echo = T, eval = F}
+# Specify mixture model
+mixture_of_lognormals <- mixture(lognormal(), lognormal())
+
+# Specify model 
+model <- bf(IKI ~ 1 + (1 | SubNo),
+            theta2 ~ 1 + (1 | SubNo),
+            family = mixture_of_lognormals)
+
+# Setup priors
+prior <-  set_prior("normal(4, 1)", class = "Intercept", dpar = "mu1") +
+          set_prior("normal(6, 1)", class = "Intercept", dpar = "mu2") +
+          set_prior("beta(2, 2)", class = "Intercept", dpar = "theta2") 
+```
+
+
+
+## Difference between models
+
+
+Model             Extreme values
+---------------   ------------------------------------------
+Gaussian          Equally likely in both tails
+log-Normal        Re-scale distance between adjacent values
+skew-Normal       Extreme values are more likely in one tail
+ex-Gaussian       Exponential component for right tail
+Mixture model     Another (cognitive) process
+    
+
+
+## Exercise: model comparison (1)
+
+>- How well does the model predict the data?
+>- Draw data simulations from each model and compare them to the actual data.
+>- Complete `visualise_model_fit.R`.
+>- This script assumes that you have stored the posterior of the five models from the homework: Gaussian, log-Normal, skew-Normal, ex-Gaussian, mixture model
+
+
+## Model predictions
+
+<div style="float: left;width: 65%;">
+
+![](pics/modelcomps.png){width="94%"}
+
+</div>
+
+<div style="float: right;width: 30%;">
+
+>- Observed data $y$ compared to 100 simulations per model $y_{rep}$.
+>- Which model does the worst job; which does the best?
+
+</div>
+
+
+# Model comparisons | chapter 11 in @gelman2020regression; chapter 6 in @mcelreath2016statistical
+
+## Leave-One-Out (LOO) cross validation {.columns-2}
+
+>- What is a good account of reality for our data (keystroke intervals between sentences)?
+>- Cross validation is not subject to overfitting.
+>- **Overfitting:** more complex models models explain more variance in the data but may  make over optimistic predictions [@gelman2020regression].
+
+\
+
+>- `loo` uses a probability calculation to approximate Leave-One-Out (LOO) information criterion (IC) (i.e. Pareto smoothed importance sampling) [@vehtari2015pareto; @vehtari2017practical].
+>- LOO: how well can a model on $N-1$ data can predict the remaining data point.
+>- Adding up prediction results gives **expected log-predictive density** ($elpd$).
+
+
+
+## Leave-One-Out (LOO) cross validation {.columns-2}
+
+
+```{r echo = T}
+loo(gaussian)
+```
+
+\
+
+>- Approximation involved in `loo()` uses the log posterior predictive densities: how likely is each data point given the distribution parameter estimates?
+>- These values don't have an interpretation on their on here but need to be considered in comparison to other models.
+
+
+## Leave-One-Out (LOO) cross validation {.columns-2}
+
+
+```{r echo = T}
+loo(gaussian)
+```
+
+\
+
+>- `elpd_loo` (expected log predictive density): sum of means of predictive accuracy
+>- `p_loo`: sum of variances
+>- `looic`: $-2 \cdot ($`elpd_loo`$-$`p_loo`$)$ (for deviance scale)
+
+
+
+
+## Exercise: model comparison (2)
+
+>- Script `model_comparison.R`
+>- Which model has the highest elpd score (i.e. highest predictive performance)?
+>- This script, again, assumes that you have stored the posterior of the 5 models from the homework: Gaussian, log-Normal, skew-Normal, ex-Gaussian, mixture model
+
+
+```{r}
+mc <- readRDS("../stanout/model_comparison.rda")
+```
+
+
+## Model comparison
+
+```{r}
+mc$diff %>%
+  as.data.frame() %>%
+  rownames_to_column("model") %>% 
+  select(model:se_elpd_loo) %>%
+  mutate(across(where(is.numeric), round, 1)) %>%
+  kable() %>%
+  kable_styling("striped", full_width = F) %>%
+  column_spec(1:5, width = "10em") %>%
+  add_footnote("`elpd_loo` is reported as $\\\\widehat{elpd}$ and the difference as $\\\\Delta\\\\widehat{elpd}$.")
+
+```
+
+
+
+
+# Mixture-model evaluation | see @roeser2021
+
+```{r}
+mixturemodel <- readRDS("../stanout/mixture_model_sentence.rda")
+```
+
+
+## Mixture-model parameters (population level)
+
+```{r echo = T}
+posterior_summary(mixturemodel, pars = "b_theta2_Intercept")[,-2] %>% round(2)
+```
+
+```{r echo = T}
+coefs <- c("b_mu1_Intercept", "b_mu2_Intercept")
+posterior_summary(mixturemodel, pars = coefs)[,-2] %>%
+  exp() %>% round()
+```
+
+
+## Mixture-model parameters (ppt level)
+
+```{r fig.width=9}
+ppt_vars <- posterior_summary(mixturemodel, pars = "r_SubNo__theta2") %>%
+  as.data.frame() %>%
+  rownames_to_column("SubNo") %>%
+  mutate(SubNo = str_match(SubNo, "S-\\s*(.*?)\\s*[,]")[,1],
+         SubNo = gsub(",", "", SubNo)) %>%
+  as_tibble()
+
+# Plot the by-ppt values
+# Values above 0: ppt shows more long values than average
+# Values below 0: ppt shows less long values than average
+ggplot(ppt_vars, aes(y = Estimate, ymin = `Q2.5`, ymax = `Q97.5`, 
+                     x = reorder(SubNo, Estimate))) +
+  geom_hline(yintercept = 0, linetype = "dotted", colour = "grey") +
+  geom_pointrange() + theme_bw() +
+  labs(y = "Difference from population-level\nmixing proportion in SDs",
+       x = "Participant id") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10))
+```
+
+## Mixture-model evaluation 
+
+>- Summarise the parameter estimates of the mixture model.
+>- Complete the `---`s in `mixturemodel_posterior.R` and run the script.
+>- Try to make sense of the parameter estimates.
+
+
+
+# The end
+
+## Summary
+
+>- A basic `brms` isn't more complicated than `lmer`.
+>- Priors require some thinking.
+>- Bayesian models allow straight forward interpretation of parameter values without an arbitrary threshold for significance.
+>- `brms` allows us to fit various models of keystroke intervals. 
+>- Mixture models showed better fit for sentence transitions.
+
+
+## Recommended reading
+
+>- Bürkner's tutorials [@brms1; @brms2; @burkner2019ordinal; @burkner2019bayesian]
+>- Vasishth's tutorials [@sorensen2016bayesian; @nicenboim2016statistical; @vasishth2016statistical]
+>- Book-length intros: @gelman2020regression, @mcelreath2016statistical, @kruschke2014doing, @lambert2018student, @lee2014bayesian
+
+
+## References
+
+<style>
+slides > slide { overflow: scroll; }
+slides > slide:not(.nobackground):after {
+  content: '';
+}
+</style>

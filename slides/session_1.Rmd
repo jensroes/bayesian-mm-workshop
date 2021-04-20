@@ -242,6 +242,9 @@ fit_brm <- readRDS(file = "../stanout/brms_sim.rda")
 fit_brm <- brm(y ~ 1 + condition + (1|participant_id), data = data)
 ```
 
+</div>
+
+
 
 ## Fit models on simulated data
 

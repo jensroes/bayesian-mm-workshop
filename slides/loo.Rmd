@@ -1,0 +1,318 @@
+---
+title: "Bayesian mixed models with brms | model comparisons"
+author: Jens Roeser 
+date: 'Last updated: `r Sys.Date()`'
+output: 
+  ioslides_presentation:
+#  revealjs::revealjs_presentation:
+    theme: simplex
+    highlight: zenburn
+    incremental: true
+    transition: slower
+    widescreen: true
+    smaller: true
+
+bibliography: ["references.bib"]
+csl: apa.csl
+link-citations: no
+
+---
+
+```{r setup, include=FALSE}
+library(citr)
+library(tidyverse)
+library(magrittr)
+library(lme4)
+library(brms)
+library(ggthemes)
+library(kableExtra)
+library(knitr)
+library(readxl)
+library(extrafont)
+library(broom)
+library(tidybayes)
+library(janitor)
+library(patchwork)
+library(mixtools)
+source("../scripts/functions.R")
+options("kableExtra.html.bsTable" = T)
+knitr::opts_chunk$set(echo = FALSE,
+                      comment=NA, 
+                      warning = FALSE,
+                      message =FALSE)
+theme_set(theme_few(base_size = 13))
+brms_sim <- readRDS(file = "../stanout/brms_sim.rda")
+```
+
+
+
+# Model comparisons | chapter 11 in @gelman2020regression; chapter 6 in @mcelreath2016statistical
+
+## Model comparisons
+
+>- What is a good account of reality for our data (keystroke intervals between sentences)?
+  >- How accurately does the model predict new data.
+>- $R^2$ et al.: more complex models are generally better.
+- **Overfitting:** models with too many parameters (e.g. predictors) make unreasonable predictions.
+- That's because $R^2$ is based on the data that were used for model fit.
+- Generalisations to data that were used to fit the model are over optimistic [@gelman2020regression].
+- Instead, evaluating predictive performance of the model for new data.
+  
+
+## Leave-One-Out (LOO) cross validation
+
+- Cross validation: performance of a model on **new** data to remove the overfitting problem.
+- Leave-One-Out (LOO) Information Criterion (LOO-IC): 
+  - Train model on $N-1$ observations 
+  - Predict remaining data point from training model.
+  - Repeat process $N$ times to predict every observation from a model of the remaining data.
+- Adding up prediction results gives an estimate of **expected log-predictive density** ($elpd$); i.e. approximation of results that would be expected for new data.
+- `loo()` uses the probability calculations to approximate LOO-IC (i.e. Pareto smoothed importance sampling) [@vehtari2015pareto; @vehtari2017practical].
+
+
+
+
+## Leave-One-Out (LOO) cross validation
+
+<div style="float: left;width: 50%;">
+
+>- Approximation involved in `loo()` uses the log posterior predictive densities: how likely is each data point given the distribution parameter estimates?
+
+</div>
+
+
+<div style="float: right;width: 50%;">
+
+```{r fig.width=5}
+log_lik(brms_sim) %>% 
+  as_tibble() %>% mutate(sample = 1:n()) %>%
+  pivot_longer(-sample, names_to = "obs", values_to = "loglik") %>%
+  group_by(obs) %>%
+  summarise(M = mean(loglik),
+            var = var(loglik)) %>%
+  mutate(obs = as.numeric(gsub(pattern = "V", replacement = "", obs))) %>%
+  ggplot(aes(x = obs, y = M, ymin = M-var, ymax = M+var)) +
+  geom_pointrange(fatten = .5) +
+  labs(x = "Observations", y = "log-posterior predictive density (with variance)")
+```
+
+</div>
+
+
+## Leave-One-Out (LOO) cross validation
+
+<div style="float: left;width: 50%;">
+
+```{r echo = T}
+loo(brms_sim)
+```
+
+
+</div>
+
+```{r}
+# product of n factors one for each data point: with theta being all parameters
+# for LOO CV we perform exclude each data point one at a time which is equivalent to multiplying posterior by factor 1/p(y_i \mid \theta)
+# LOO posterior excluding i is p(\theta \ mid y_{-i}) = p(\theta \mid y) / p(y_i \mid \theta) using the the 
+# LOO distribution uses the posterior simulatios for \theta and giving each simulation a weight of 1 / p(y_i \mid \theta)
+# Weighted simulations is used to approximate the predictice distribution of y_i (the held-out data point)
+# $$p(\theta \mid y) \propto p(\theta) \prod^n_{i=1} p(y_i \mid \theta)$$
+```
+
+```{r}
+# pointwise density:
+# Average likelihood of every observation in training sample
+# this is done for each set of parameters sampled from the psoterior distribution
+# Average liklihood for each obsersation
+# Sum over all observations.
+# resulting in the log-pointwise-predictive-density (lppd)
+
+# effective number of parameters is the variance in log-likelihood for every observation: p_waic
+# WAIC: -2*(lppd * p_waic)
+
+
+
+```
+
+
+
+
+
+<div style="float: right;width: 50%;">
+
+```{r fig.width=5}
+log_lik(brms_sim) %>% 
+  as_tibble() %>% mutate(sample = 1:n()) %>%
+  pivot_longer(-sample, names_to = "obs", values_to = "loglik") %>%
+  group_by(obs) %>%
+  summarise(M = mean(loglik),
+            var = var(loglik)) %>%
+  mutate(obs = as.numeric(gsub(pattern = "V", replacement = "", obs))) %>%
+  ggplot(aes(x = obs, y = M, ymin = M-var, ymax = M+var)) +
+  geom_pointrange(fatten = .5) +
+  labs(x = "Observations", y = "log-posterior predictive density (with variance)")
+```
+
+</div>
+
+
+
+## Leave-One-Out (LOO) cross validation
+
+<div style="float: left;width: 50%;">
+
+```{r echo = T}
+loo(brms_sim)
+```
+
+
+>- `elpd_loo`: sum of means (expected log predictive density)
+>- `p_loo`: sum of variances
+>- `looic`: $-2 \cdot ($`elpd_loo`$-$`p_loo`$)$ (for deviance scale)
+
+
+```{r echo = F}
+loos <- log_lik(brms_sim) %>% as_tibble() %>% mutate(sample = 1:n()) %>%
+  pivot_longer(-sample, names_to = "obs", values_to = "loglik") %>%
+  group_by(obs) %>%
+  summarise(mean_loglik = mean(exp(loglik)),
+            var_loglik = var(loglik)) %>% 
+  ungroup() %>%
+  summarise(elpd_loo = sum(log(mean_loglik)), # sum of mean log lik
+            p_loo = sum(var_loglik), # effective number of parameters
+            looic = -2 * (elpd_loo - p_loo) # Bayesian deviance
+            ) 
+```
+
+
+</div>
+
+<div style="float: right;width: 50%;">
+
+```{r fig.width=5}
+log_lik(brms_sim) %>% 
+  as_tibble() %>% mutate(sample = 1:n()) %>%
+  pivot_longer(-sample, names_to = "obs", values_to = "loglik") %>%
+  group_by(obs) %>%
+  summarise(M = mean(loglik),
+            var = var(loglik)) %>%
+  mutate(obs = as.numeric(gsub(pattern = "V", replacement = "", obs))) %>%
+  ggplot(aes(x = obs, y = M, ymin = M-var, ymax = M+var)) +
+  geom_pointrange(fatten = .5) +
+  labs(x = "Observations", y = "log-posterior predictive density (with variance)")
+```
+
+</div>
+
+
+## Leave-One-Out (LOO) cross validation
+
+<div style="float: left;width: 50%;">
+
+```{r echo = T}
+loo(brms_sim)
+```
+
+
+
+```{r}
+#difference between two deviances has a chi-squared distribution; factor of 2 scales it that way; also called the Bayesian deviance
+
+
+# N of parameters
+# number of different conjectures for causes of explanations of the data
+# How much iformation do we want the model to provide
+# how flexible is themodel in fitting the training samples
+# penalty term
+# expected distance between in-sample and out-of-sample deviance
+```
+
+>- `elpd_loo` and `looic` rarely have a direct interpretation (as opposed to `loo_R2()`): important are differences between models.
+>- `p_loo` is the effective number of parameters: how flexible is the model fit.
+
+
+
+```{r echo = F}
+loos <- log_lik(brms_sim) %>% as_tibble() %>% mutate(sample = 1:n()) %>%
+  pivot_longer(-sample, names_to = "obs", values_to = "loglik") %>%
+  group_by(obs) %>%
+  summarise(mean_loglik = mean(exp(loglik)),
+            var_loglik = var(loglik)) %>% 
+  ungroup() %>%
+  summarise(elpd_loo = sum(log(mean_loglik)), # sum of mean log lik
+            p_loo = sum(var_loglik), # effective number of parameters
+            looic = -2 * (elpd_loo - p_loo) # Bayesian deviance
+            ) 
+```
+
+
+</div>
+
+<div style="float: right;width: 50%;">
+
+```{r fig.width=5}
+log_lik(brms_sim) %>% 
+  as_tibble() %>% mutate(sample = 1:n()) %>%
+  pivot_longer(-sample, names_to = "obs", values_to = "loglik") %>%
+  group_by(obs) %>%
+  summarise(M = mean(loglik),
+            var = var(loglik)) %>%
+  mutate(obs = as.numeric(gsub(pattern = "V", replacement = "", obs))) %>%
+  ggplot(aes(x = obs, y = M, ymin = M-var, ymax = M+var)) +
+  geom_pointrange(fatten = .5) +
+  labs(x = "Observations", y = "log-posterior predictive density (with variance)")
+```
+
+</div>
+
+
+```{r}
+#loo_R2(mixturemodel)
+#bayes_R2(mixturemodel)
+
+```
+
+
+
+
+## Exercise: model comparison
+
+>- Open the script `model_comparison.R`
+>- Complete the missing bits (`---`) and run the script.
+>- Which model has the highest elpd score (i.e. highest predictive performance)?
+>- This script, again, assumes that you have stored the posterior of the 5 models from the homework: Gaussian, log-Normal, skew-Normal, ex-Gaussian, mixture model
+
+
+```{r}
+mc <- readRDS("../stanout/model_comparison.rda")
+```
+
+
+## Model comparison
+
+```{r}
+mc$diff %>%
+  as.data.frame() %>%
+  rownames_to_column("model") %>% 
+  select(model:se_elpd_loo) %>%
+  mutate(across(where(is.numeric), round, 1)) %>%
+  kable() %>%
+  kable_styling("striped", full_width = F) %>%
+  column_spec(1:5, width = "10em") %>%
+  add_footnote("`elpd_loo` is reported as $\\\\widehat{elpd}$ and the difference as $\\\\Delta\\\\widehat{elpd}$.")
+
+```
+
+
+
+
+
+
+## References
+
+<style>
+slides > slide { overflow: scroll; }
+slides > slide:not(.nobackground):after {
+  content: '';
+}
+</style>
