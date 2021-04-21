@@ -47,39 +47,3 @@ saveRDS(object = fit_brm,
         file = "stanout/brms_sim_with_prior.rda",
         compress = "xz")
 
-
-
-# weak
-prior <- set_prior("normal(500, 250)", class = "Intercept") +
-  set_prior("normal(0, 100)", class = "b")
-
-fit_brm_weak <- brm(formula = model, prior = prior, data = data)
-
-# flat
-prior <- set_prior("normal(500, 250)", class = "Intercept") 
-
-fit_brm_flat <- brm(formula = model, prior = prior, data = data)
-
-# zero
-prior <- set_prior("normal(500, 250)", class = "Intercept") +
-  set_prior("normal(0, 1)", class = "b")
-
-fit_brm_zero <- brm(formula = model, prior = prior, data = data)
-
-# against hypothesis
-prior <- set_prior("normal(500, 250)", class = "Intercept") +
-  set_prior("normal(-500, 10)", class = "b")
-
-fit_brm_against <- brm(formula = model, prior = prior, data = data, 
-                       cores = 3, chains = 3)
-
-fixef(fit_brm_weak)
-fixef(fit_brm_flat)
-fixef(fit_brm_zero)
-fixef(fit_brm_against)
-
-beta <- posterior_samples(fit_brm_against, pars = "b_conditionb") %>% pull()
-hist(beta)
-
-
-
